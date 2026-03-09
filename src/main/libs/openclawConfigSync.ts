@@ -2,6 +2,7 @@ import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import type { CoworkConfig, CoworkExecutionMode } from '../coworkStore';
+import type { DingTalkConfig } from '../im/types';
 import { resolveRawApiConfig } from './claudeSettings';
 import type { OpenClawEngineManager } from './openclawEngineManager';
 
@@ -50,15 +51,18 @@ export type OpenClawConfigSyncResult = {
 type OpenClawConfigSyncDeps = {
   engineManager: OpenClawEngineManager;
   getCoworkConfig: () => CoworkConfig;
+  getDingTalkConfig: () => DingTalkConfig | null;
 };
 
 export class OpenClawConfigSync {
   private readonly engineManager: OpenClawEngineManager;
   private readonly getCoworkConfig: () => CoworkConfig;
+  private readonly getDingTalkConfig: () => DingTalkConfig | null;
 
   constructor(deps: OpenClawConfigSyncDeps) {
     this.engineManager = deps.engineManager;
     this.getCoworkConfig = deps.getCoworkConfig;
+    this.getDingTalkConfig = deps.getDingTalkConfig;
   }
 
   sync(reason: string): OpenClawConfigSyncResult {
@@ -94,9 +98,22 @@ export class OpenClawConfigSync {
 
     const preinstalledPluginIds = readPreinstalledPluginIds();
 
+    const dingTalkConfig = this.getDingTalkConfig();
+    const hasDingTalk = dingTalkConfig?.enabled && dingTalkConfig.clientId;
+    const gatewayToken = hasDingTalk
+      ? this.engineManager.getGatewayConnectionInfo().token || ''
+      : '';
+
     const managedConfig: Record<string, unknown> = {
       gateway: {
         mode: 'local',
+        ...(hasDingTalk ? {
+          http: {
+            endpoints: {
+              chatCompletions: { enabled: true },
+            },
+          },
+        } : {}),
       },
       models: {
         mode: 'replace',
@@ -131,13 +148,22 @@ export class OpenClawConfigSync {
       ...(preinstalledPluginIds.length > 0
         ? {
             plugins: {
-              allow: preinstalledPluginIds,
               entries: Object.fromEntries(
                 preinstalledPluginIds.map((id) => [id, { enabled: true }]),
               ),
             },
           }
         : {}),
+      ...(hasDingTalk ? {
+        channels: {
+          'dingtalk-connector': {
+            enabled: true,
+            clientId: dingTalkConfig.clientId,
+            clientSecret: dingTalkConfig.clientSecret,
+            ...(gatewayToken ? { gatewayToken } : {}),
+          },
+        },
+      } : {}),
     };
 
     const nextContent = `${JSON.stringify(managedConfig, null, 2)}\n`;

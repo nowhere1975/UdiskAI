@@ -671,6 +671,13 @@ const getOpenClawConfigSync = (): OpenClawConfigSync => {
     openClawConfigSync = new OpenClawConfigSync({
       engineManager: getOpenClawEngineManager(),
       getCoworkConfig: () => getCoworkStore().getConfig(),
+      getDingTalkConfig: () => {
+        try {
+          return getIMGatewayManager().getConfig().dingtalk;
+        } catch {
+          return null;
+        }
+      },
     });
   }
   return openClawConfigSync;
@@ -2207,6 +2214,10 @@ if (!gotTheLock) {
   ipcMain.handle('im:config:set', async (_event, config: Partial<IMGatewayConfig>) => {
     try {
       getIMGatewayManager().setConfig(config);
+      // Re-sync OpenClaw config so dingtalk-connector picks up new credentials
+      if (config.dingtalk) {
+        void syncOpenClawConfig({ reason: 'im-dingtalk-config-change', restartGatewayIfRunning: false });
+      }
       return { success: true };
     } catch (error) {
       return {
