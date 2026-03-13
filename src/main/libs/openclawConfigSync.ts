@@ -6,6 +6,13 @@ import type { TelegramOpenClawConfig, DiscordOpenClawConfig } from '../im/types'
 import type { DingTalkOpenClawConfig, FeishuOpenClawConfig, QQOpenClawConfig, WecomOpenClawConfig } from '../im/types';
 import { resolveRawApiConfig } from './claudeSettings';
 import type { OpenClawEngineManager } from './openclawEngineManager';
+import type { McpToolManifestEntry } from './mcpServerManager';
+
+export type McpBridgeConfig = {
+  callbackUrl: string;
+  secret: string;
+  tools: McpToolManifestEntry[];
+};
 
 const mapExecutionModeToSandboxMode = (mode: CoworkExecutionMode): 'off' | 'non-main' | 'all' => {
   if (mode === 'local') return 'off';
@@ -58,6 +65,7 @@ type OpenClawConfigSyncDeps = {
   getFeishuConfig: () => FeishuOpenClawConfig | null;
   getQQConfig: () => QQOpenClawConfig | null;
   getWecomConfig: () => WecomOpenClawConfig | null;
+  getMcpBridgeConfig?: () => McpBridgeConfig | null;
 };
 
 export class OpenClawConfigSync {
@@ -69,6 +77,7 @@ export class OpenClawConfigSync {
   private readonly getFeishuConfig: () => FeishuOpenClawConfig | null;
   private readonly getQQConfig: () => QQOpenClawConfig | null;
   private readonly getWecomConfig: () => WecomOpenClawConfig | null;
+  private readonly getMcpBridgeConfig?: () => McpBridgeConfig | null;
 
   constructor(deps: OpenClawConfigSyncDeps) {
     this.engineManager = deps.engineManager;
@@ -79,6 +88,7 @@ export class OpenClawConfigSync {
     this.getFeishuConfig = deps.getFeishuConfig;
     this.getQQConfig = deps.getQQConfig;
     this.getWecomConfig = deps.getWecomConfig;
+    this.getMcpBridgeConfig = deps.getMcpBridgeConfig;
   }
 
   sync(reason: string): OpenClawConfigSyncResult {
@@ -181,11 +191,28 @@ export class OpenClawConfigSync {
                 ...(preinstalledPluginIds.includes('feishu-openclaw-plugin')
                   ? { feishu: { enabled: false } }
                   : {}),
+                'mcp-bridge': { enabled: true },
               },
             },
           }
-        : {}),
+        : {
+            plugins: {
+              entries: {
+                'mcp-bridge': { enabled: true },
+              },
+            },
+          }),
     };
+
+    // Sync MCP Bridge config
+    const mcpBridgeCfg = this.getMcpBridgeConfig?.();
+    if (mcpBridgeCfg && mcpBridgeCfg.tools.length > 0) {
+      managedConfig.mcpBridge = {
+        callbackUrl: mcpBridgeCfg.callbackUrl,
+        secret: mcpBridgeCfg.secret,
+        tools: mcpBridgeCfg.tools,
+      };
+    }
 
     // Sync Telegram OpenClaw channel config
     const tgConfig = this.getTelegramOpenClawConfig?.();
