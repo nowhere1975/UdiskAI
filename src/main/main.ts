@@ -3226,12 +3226,27 @@ if (!gotTheLock) {
     return false;
   });
 
+  // 企微 SDK 授权弹窗白名单域名
+  const WECOM_AUTH_HOSTNAMES = new Set([
+    'work.weixin.qq.com',
+    'open.work.weixin.qq.com',
+    'wwcdn.weixin.qq.com',
+  ]);
+
+  const isWecomAuthUrl = (url: string): boolean => {
+    try {
+      const hostname = new URL(url).hostname;
+      return WECOM_AUTH_HOSTNAMES.has(hostname);
+    } catch {
+      return false;
+    }
+  };
+
   // 设置 Content Security Policy
   const setContentSecurityPolicy = () => {
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
       // 跳过企微授权页面，让其使用自身的 CSP（否则外部脚本被阻止导致空白页）
-      const url = details.url || '';
-      if (url.includes('work.weixin.qq.com') || url.includes('wwcdn.weixin.qq.com')) {
+      if (isWecomAuthUrl(details.url)) {
         callback({ responseHeaders: details.responseHeaders });
         return;
       }
@@ -3321,9 +3336,7 @@ if (!gotTheLock) {
 
     // 处理 window.open 请求（企微 SDK 授权弹窗等）
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-      console.log('[Main] setWindowOpenHandler called with URL:', url);
-      if (url.includes('work.weixin.qq.com') || url.includes('open.work.weixin.qq.com')) {
-        console.log('[Main] Allowing WeCom auth popup for URL:', url);
+      if (isWecomAuthUrl(url)) {
         return {
           action: 'allow',
           overrideBrowserWindowOptions: {
@@ -3339,24 +3352,17 @@ if (!gotTheLock) {
           },
         };
       }
-      console.log('[Main] Denying popup, opening externally:', url);
       shell.openExternal(url);
       return { action: 'deny' };
     });
 
-    // 监听子窗口创建事件
+    // 监听子窗口创建事件（企微授权弹窗安全限制）
     mainWindow.webContents.on('did-create-window', (childWindow) => {
-      console.log('[Main] Child window created, URL:', childWindow.webContents.getURL());
-      childWindow.webContents.on('did-finish-load', () => {
-        console.log('[Main] Child window finished loading:', childWindow.webContents.getURL());
-      });
-      childWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
-        console.log('[Main] Child window failed to load:', validatedURL, 'error:', errorCode, errorDescription);
-      });
-      // 捕获子窗口的控制台日志
-      childWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
-        const levelStr = ['LOG', 'WARN', 'ERROR'][level] || 'INFO';
-        console.log(`[Main] Child window console [${levelStr}]: ${message} (${sourceId}:${line})`);
+      // 限制子窗口只能导航到企微域名，防止被劫持到其他站点
+      childWindow.webContents.on('will-navigate', (event, navUrl) => {
+        if (!isWecomAuthUrl(navUrl)) {
+          event.preventDefault();
+        }
       });
     });
 
