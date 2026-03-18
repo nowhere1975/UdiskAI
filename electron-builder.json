@@ -45,39 +45,6 @@
   ],
   "extraResources": [
     {
-      "from": "SKILLs",
-      "to": "SKILLs",
-      "filter": [
-        "**/*",
-        "!**/.env",
-        "!**/.env.*",
-        "!**/.venv",
-        "!**/.venv/**",
-        "!**/*.map",
-        "!**/*.d.ts",
-        "!**/*.d.cts",
-        "!**/*.d.mts",
-        "!**/README.md",
-        "!**/README",
-        "!**/readme.md",
-        "!**/CHANGELOG.md",
-        "!**/CHANGELOG",
-        "!**/HISTORY.md",
-        "!**/LICENSE",
-        "!**/LICENSE.md",
-        "!**/LICENSE.txt",
-        "!**/.eslintrc*",
-        "!**/.prettierrc*",
-        "!**/tsconfig.json",
-        "!**/tsconfig.*.json",
-        "!**/*.test.*",
-        "!**/*.spec.*",
-        "!**/tests/**",
-        "!**/test/**",
-        "!**/__tests__/**"
-      ]
-    },
-    {
       "from": "resources/tray",
       "to": "tray",
       "filter": [
@@ -102,6 +69,39 @@
       "NSAppleEventsUsageDescription": "LobsterAI 需要使用 Apple Events 来控制 Calendar 应用执行自动化操作。"
     },
     "extraResources": [
+      {
+        "from": "SKILLs",
+        "to": "SKILLs",
+        "filter": [
+          "**/*",
+          "!**/.env",
+          "!**/.env.*",
+          "!**/.venv",
+          "!**/.venv/**",
+          "!**/*.map",
+          "!**/*.d.ts",
+          "!**/*.d.cts",
+          "!**/*.d.mts",
+          "!**/README.md",
+          "!**/README",
+          "!**/readme.md",
+          "!**/CHANGELOG.md",
+          "!**/CHANGELOG",
+          "!**/HISTORY.md",
+          "!**/LICENSE",
+          "!**/LICENSE.md",
+          "!**/LICENSE.txt",
+          "!**/.eslintrc*",
+          "!**/.prettierrc*",
+          "!**/tsconfig.json",
+          "!**/tsconfig.*.json",
+          "!**/*.test.*",
+          "!**/*.spec.*",
+          "!**/tests/**",
+          "!**/test/**",
+          "!**/__tests__/**"
+        ]
+      },
       {
         "from": "vendor/openclaw-runtime/current",
         "to": "cfmind",
@@ -144,42 +144,6 @@
     "icon": "build/icons/win/icon.ico",
     "extraResources": [
       {
-        "from": "resources/python-win",
-        "to": "python-win",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "vendor/openclaw-runtime/current",
-        "to": "cfmind",
-        "filter": [
-          "**/*",
-          "!**/*.map",
-          "!**/*.d.ts",
-          "!**/*.d.cts",
-          "!**/*.d.mts",
-          "!**/README.md",
-          "!**/README",
-          "!**/readme.md",
-          "!**/CHANGELOG.md",
-          "!**/CHANGELOG",
-          "!**/HISTORY.md",
-          "!**/LICENSE",
-          "!**/LICENSE.md",
-          "!**/LICENSE.txt",
-          "!**/.eslintrc*",
-          "!**/.prettierrc*",
-          "!**/tsconfig.json",
-          "!**/tsconfig.*.json",
-          "!**/*.test.*",
-          "!**/*.spec.*",
-                "!**/tests/**",
-          "!**/test/**",
-          "!**/__tests__/**"
-        ]
-      },
-      {
         "from": "vendor/openclaw-runtime/cfmind.tar",
         "to": "cfmind.tar"
       },
@@ -205,6 +169,39 @@
     "icon": "build/icons/png",
     "category": "Utility",
     "extraResources": [
+      {
+        "from": "SKILLs",
+        "to": "SKILLs",
+        "filter": [
+          "**/*",
+          "!**/.env",
+          "!**/.env.*",
+          "!**/.venv",
+          "!**/.venv/**",
+          "!**/*.map",
+          "!**/*.d.ts",
+          "!**/*.d.cts",
+          "!**/*.d.mts",
+          "!**/README.md",
+          "!**/README",
+          "!**/readme.md",
+          "!**/CHANGELOG.md",
+          "!**/CHANGELOG",
+          "!**/HISTORY.md",
+          "!**/LICENSE",
+          "!**/LICENSE.md",
+          "!**/LICENSE.txt",
+          "!**/.eslintrc*",
+          "!**/.prettierrc*",
+          "!**/tsconfig.json",
+          "!**/tsconfig.*.json",
+          "!**/*.test.*",
+          "!**/*.spec.*",
+          "!**/tests/**",
+          "!**/test/**",
+          "!**/__tests__/**"
+        ]
+      },
       {
         "from": "vendor/openclaw-runtime/current",
         "to": "cfmind",
