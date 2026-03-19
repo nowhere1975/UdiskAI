@@ -1149,10 +1149,10 @@ export class OpenClawEngineManager extends EventEmitter {
         ? args[0].message
         : `${args[0]}${args[1] ? ` (${args[1]})` : ''}`;
       console.error(`[OpenClaw] gateway process error event: ${errorMsg}`);
-      if (this.expectedGatewayExits.has(child)) {
-        this.expectedGatewayExits.delete(child);
-        return;
-      }
+      // Don't delete from expectedGatewayExits here — the 'exit' event always
+      // follows and handles cleanup. Deleting here would cause 'exit' to miss
+      // the expected-exit guard, triggering a spurious restart.
+      if (this.expectedGatewayExits.has(child)) return;
       if (this.shutdownRequested) return;
       this.setStatus({
         phase: 'error',
@@ -1160,7 +1160,6 @@ export class OpenClawEngineManager extends EventEmitter {
         message: `OpenClaw gateway process error: ${errorMsg}`,
         canRetry: true,
       });
-      this.scheduleGatewayRestart();
     });
 
     child.once('exit', (code) => {
