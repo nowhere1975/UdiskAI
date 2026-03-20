@@ -64,6 +64,26 @@ if (fs.existsSync(TAR_PATH)) {
   console.warn('WARNING: win-resources.tar not found — SKILLs/Python may be missing.');
 }
 
+// ── 1c. Copy SKILLs directly from project source (belt-and-suspenders) ───────
+// Tar extraction may omit SKILLs if tar.replace has prefix issues.
+// Always sync directly from the project SKILLs/ directory to be safe.
+console.log('\n=== Step 1c: Sync SKILLs/ from project source ===');
+const SKILLS_SRC = path.join(ROOT, 'SKILLs');
+const SKILLS_DST = path.join(RESOURCES_DIR, 'SKILLs');
+if (fs.existsSync(SKILLS_SRC)) {
+  if (fs.existsSync(SKILLS_DST)) {
+    // Skills already exist from tar extraction — overwrite to ensure freshness
+    fs.rmSync(SKILLS_DST, { recursive: true, force: true });
+  }
+  fs.cpSync(SKILLS_SRC, SKILLS_DST, { recursive: true });
+  const skillCount = fs.readdirSync(SKILLS_DST).filter(
+    f => fs.statSync(path.join(SKILLS_DST, f)).isDirectory()
+  ).length;
+  console.log(`Synced ${skillCount} skill(s) from ${SKILLS_SRC} to ${SKILLS_DST}`);
+} else {
+  console.warn('WARNING: SKILLs source not found at', SKILLS_SRC);
+}
+
 // ── 2. 启动.bat ──────────────────────────────────────────────────────────────
 console.log('\n=== Step 2: Write 启动.bat ===');
 fs.copyFileSync(BAT_SRC, BAT_DST);
