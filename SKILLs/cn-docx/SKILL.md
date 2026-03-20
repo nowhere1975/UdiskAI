@@ -1,6 +1,6 @@
 ---
-name: cn-docx
-description: 生成中文 Word 文档（.docx）。支持正式公文（GB/T 9704-2012）和通用文档（工作总结、项目方案等）两种模式。当用户要求起草、生成、写作任何中文文档时触发，包括：通知、报告、请示、函、纪要、讲话稿、方案、工作总结等。
+name: 中文文档生成
+description: 起草并生成中文 Word 文档（.docx）。支持正式公文（GB/T 9704-2012）和通用文档两种模式。当用户要求起草、生成、写作任何中文文档时触发，包括：通知、报告、请示、函、纪要、讲话稿、方案、工作总结等。Do NOT use when the user wants to edit, modify, comment on, or extract text from an existing .docx file — use the docx skill instead.
 ---
 
 # cn-docx · 中文文档生成

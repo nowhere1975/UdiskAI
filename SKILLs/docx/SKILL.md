@@ -1,6 +1,6 @@
 ---
-name: docx
-description: "Comprehensive document creation, editing, and analysis with support for tracked changes, comments, formatting preservation, and text extraction. When Claude needs to work with professional documents (.docx files) for: (1) Creating new documents, (2) Modifying or editing content, (3) Working with tracked changes, (4) Adding comments, or any other document tasks"
+name: Word文档编辑与分析
+description: 编辑、修改、批注、分析现有 Word 文档（.docx），支持修订追踪（Track Changes）、批注（Comments）、文字提取、格式保留。Edit, annotate, redline, and extract content from existing .docx files. Do NOT use when the user wants to draft or create a new Chinese document from scratch — use the 中文文档生成 skill instead.
 license: Proprietary. LICENSE.txt has complete terms
 official: true
 ---
