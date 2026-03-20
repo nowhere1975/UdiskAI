@@ -17,6 +17,7 @@
 const { execSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const tar = require('tar');
 
 // Signal to electron-builder-hooks to skip openclaw runtime check
 process.env.LOBSTERAI_PORTABLE_BUILD = '1';
@@ -42,6 +43,25 @@ run('npx electron-builder --win --dir --x64');
 if (!fs.existsSync(UNPACKED_DIR)) {
   console.error(`ERROR: Expected unpacked dir not found: ${UNPACKED_DIR}`);
   process.exit(1);
+}
+
+// ── 1b. Extract win-resources.tar into resources/ ────────────────────────────
+// NSIS installer normally extracts this tar; portable builds must do it here.
+// Skip cfmind/ (openclaw) — only extract SKILLs/ and python-win/.
+console.log('\n=== Step 1b: Extract win-resources.tar ===');
+const TAR_PATH = path.join(UNPACKED_DIR, 'resources', 'win-resources.tar');
+const RESOURCES_DIR = path.join(UNPACKED_DIR, 'resources');
+if (fs.existsSync(TAR_PATH)) {
+  tar.extract({
+    file: TAR_PATH,
+    cwd: RESOURCES_DIR,
+    sync: true,
+    filter: (p) => !p.startsWith('cfmind/') && !p.startsWith('cfmind\\'),
+  });
+  fs.unlinkSync(TAR_PATH);
+  console.log('Extracted SKILLs/ and python-win/ from tar, removed tar.');
+} else {
+  console.warn('WARNING: win-resources.tar not found — SKILLs/Python may be missing.');
 }
 
 // ── 2. 启动.bat ──────────────────────────────────────────────────────────────
