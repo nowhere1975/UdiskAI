@@ -1324,8 +1324,24 @@ export class SkillManager {
       throw new Error('Built-in skills cannot be deleted');
     }
 
-    const targetDir = resolveWithin(root, id);
-    if (!fs.existsSync(targetDir)) {
+    // Search all writable roots (primaryRoot + claudeSkillsRoot) for the skill dir.
+    // bundledRoot (resources/SKILLs) is read-only and excluded from deletion.
+    const candidateRoots = [root];
+    const claudeRoot = this.getClaudeSkillsRoot();
+    if (claudeRoot && fs.existsSync(claudeRoot) && claudeRoot !== root) {
+      candidateRoots.push(claudeRoot);
+    }
+
+    let targetDir: string | null = null;
+    for (const candidate of candidateRoots) {
+      const dir = resolveWithin(candidate, id);
+      if (fs.existsSync(dir)) {
+        targetDir = dir;
+        break;
+      }
+    }
+
+    if (!targetDir) {
       throw new Error('Skill not found');
     }
 
