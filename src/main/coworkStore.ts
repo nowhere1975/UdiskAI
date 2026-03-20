@@ -301,7 +301,7 @@ export type CoworkAgentEngine = 'openclaw' | 'yd_cowork';
 const COWORK_AGENT_ENGINE = 'openclaw';
 
 function normalizeCoworkAgentEngineValue(value?: string | null): CoworkAgentEngine {
-  if (value === COWORK_AGENT_ENGINE || value === 'openclaw') {
+  if (value === 'openclaw' || value === 'yd_cowork') {
     return value;
   }
   return COWORK_AGENT_ENGINE;
