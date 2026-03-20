@@ -27,6 +27,7 @@ import { i18nService } from './services/i18n';
 import { matchesShortcut } from './services/shortcuts';
 import AppUpdateBadge from './components/update/AppUpdateBadge';
 import AppUpdateModal from './components/update/AppUpdateModal';
+import SetupWizard from './components/SetupWizard';
 
 const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
@@ -42,6 +43,7 @@ const App: React.FC = () => {
   const [updateModalState, setUpdateModalState] = useState<'info' | 'downloading' | 'installing' | 'error'>('info');
   const [downloadProgress, setDownloadProgress] = useState<AppUpdateDownloadProgress | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [showSetupWizard, setShowSetupWizard] = useState(false);
   const toastTimerRef = useRef<number | null>(null);
   const hasInitialized = useRef(false);
   const dispatch = useDispatch();
@@ -139,6 +141,13 @@ const App: React.FC = () => {
           ) ?? resolvedModels[0];
           dispatch(setSelectedModel(preferredModel));
         }
+
+        // 检测是否需要首次配置向导（无任何可用 provider 配置）
+        const needsSetup = !config.api.key &&
+          (!config.providers || Object.values(config.providers).every(
+            (p) => !p.enabled || !p.apiKey
+          ));
+        setShowSetupWizard(needsSetup);
 
         setIsInitialized(true);
         console.info('[App] initializeApp: shell ready');
@@ -600,6 +609,9 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen overflow-hidden flex flex-col dark:bg-claude-darkSurfaceMuted bg-claude-surfaceMuted">
+      {showSetupWizard && (
+        <SetupWizard onComplete={() => setShowSetupWizard(false)} />
+      )}
       {toastMessage && (
         <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
       )}

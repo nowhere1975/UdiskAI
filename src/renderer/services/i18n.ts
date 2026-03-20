@@ -221,6 +221,21 @@ const translations: Record<LanguageType, Record<string, string>> = {
     initializationError: '初始化应用程序失败。请检查您的配置。',
     apiKeyNotConfigured: 'API密钥未配置。请在设置中设置您的API密钥。',
 
+    // 首次配置向导
+    setupWizardWelcomeTitle: '欢迎使用 AI 办公助手',
+    setupWizardWelcomeDesc: '首次使用需要配置 AI 服务，只需 1 分钟即可完成。',
+    setupWizardWelcomeStart: '开始配置',
+    setupWizardProviderTitle: '选择 AI 服务商',
+    setupWizardProviderDesc: '请选择您已申请的 AI 服务商，之后可在设置中随时更改。',
+    setupWizardApiKeyTitle: '填写 API Key',
+    setupWizardApiKeyPlaceholder: '粘贴您的 API Key',
+    setupWizardApiKeyGetKey: '如何获取 API Key？',
+    setupWizardApiKeyFinish: '完成配置',
+    setupWizardApiKeyTesting: '验证中...',
+    setupWizardApiKeyEmpty: '请填写 API Key',
+    setupWizardBack: '上一步',
+    setupWizardSkip: '跳过，稍后配置',
+
     // LobsterAI
     cowork: 'LobsterAI',
     coworkSettings: 'LobsterAI 设置',
@@ -1890,6 +1905,21 @@ const translations: Record<LanguageType, Record<string, string>> = {
     scheduledTasksSessionKey: 'Session Key',
     scheduledTasksToggleWarningAtPast: 'The execution time of this task has passed. It will not run after enabling',
     scheduledTasksToggleWarningExpired: 'This task has expired. It will not run after enabling',
+
+    // Setup wizard
+    setupWizardWelcomeTitle: 'Welcome to AI Assistant',
+    setupWizardWelcomeDesc: 'Set up your AI service in just 1 minute to get started.',
+    setupWizardWelcomeStart: 'Get Started',
+    setupWizardProviderTitle: 'Choose AI Provider',
+    setupWizardProviderDesc: 'Select the AI provider you have signed up for. You can change this later in Settings.',
+    setupWizardApiKeyTitle: 'Enter Your API Key',
+    setupWizardApiKeyPlaceholder: 'Paste your API Key here',
+    setupWizardApiKeyGetKey: 'How to get an API Key?',
+    setupWizardApiKeyFinish: 'Finish Setup',
+    setupWizardApiKeyTesting: 'Verifying...',
+    setupWizardApiKeyEmpty: 'Please enter your API Key',
+    setupWizardBack: 'Back',
+    setupWizardSkip: 'Skip, configure later',
   }
 };
 
