@@ -1324,28 +1324,31 @@ export class SkillManager {
       throw new Error('Built-in skills cannot be deleted');
     }
 
-    // Search all writable roots (primaryRoot + claudeSkillsRoot) for the skill dir.
-    // bundledRoot (resources/SKILLs) is read-only and excluded from deletion.
+    // Delete from ALL writable roots where the skill exists.
+    // This prevents marketplace-installed skills from reappearing after
+    // deletion when the same ID exists in both primaryRoot and claudeSkillsRoot.
+    // bundledRoot (resources/SKILLs) is read-only and excluded.
     const candidateRoots = [root];
     const claudeRoot = this.getClaudeSkillsRoot();
     if (claudeRoot && fs.existsSync(claudeRoot) && claudeRoot !== root) {
       candidateRoots.push(claudeRoot);
     }
 
-    let targetDir: string | null = null;
+    const dirsToDelete: string[] = [];
     for (const candidate of candidateRoots) {
       const dir = resolveWithin(candidate, id);
       if (fs.existsSync(dir)) {
-        targetDir = dir;
-        break;
+        dirsToDelete.push(dir);
       }
     }
 
-    if (!targetDir) {
+    if (dirsToDelete.length === 0) {
       throw new Error('Skill not found');
     }
 
-    fs.rmSync(targetDir, { recursive: true, force: true });
+    for (const dir of dirsToDelete) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
     const state = this.loadSkillStateMap();
     delete state[id];
     this.saveSkillStateMap(state);
