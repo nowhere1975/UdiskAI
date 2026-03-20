@@ -3787,6 +3787,19 @@ if (!gotTheLock) {
     if (resetCount > 0) {
       console.log(`[Main] Reset ${resetCount} stuck cowork session(s) from running -> idle`);
     }
+    // In portable mode, openclaw is not bundled — force built-in engine
+    {
+      const exeDir = path.dirname(app.getPath('exe'));
+      const portableMarker = path.join(exeDir, 'data', '.portable');
+      if (fs.existsSync(portableMarker)) {
+        const currentEngine = getCoworkStore().getConfig().agentEngine;
+        if (currentEngine !== 'yd_cowork') {
+          getCoworkStore().setConfig({ agentEngine: 'yd_cowork' });
+          console.log('[Main] Portable mode: agentEngine forced to yd_cowork');
+        }
+      }
+    }
+
     // Inject store getter into claudeSettings
     setStoreGetter(() => store);
 
