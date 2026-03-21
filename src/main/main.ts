@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, session, nativeTheme, dialog, shell, nativeImage, Menu, protocol, net } from 'electron';
+import { app, BrowserWindow, ipcMain, session, nativeTheme, dialog, shell, nativeImage, systemPreferences, Menu, protocol, net, powerMonitor, powerSaveBlocker } from 'electron';
 import type { WebContents } from 'electron';
 import path from 'path';
 import fs from 'fs';
@@ -559,6 +559,7 @@ let mcpBridgeStartPromise: Promise<McpBridgeConfig | null> | null = null;
 let storeInitPromise: Promise<SqliteStore> | null = null;
 let coworkRuntimeForwarderBound = false;
 let memoryMigrationDone = false;
+let preventSleepBlockerId: number | null = null;
 
 const initStore = async (): Promise<SqliteStore> => {
   if (!storeInitPromise) {
@@ -1083,6 +1084,36 @@ if (!gotTheLock) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to set auto-launch',
+      };
+    }
+  });
+
+  ipcMain.handle('app:getPreventSleep', () => {
+    const enabled = getStore().get<boolean>('prevent_sleep_enabled') ?? false;
+    return { enabled };
+  });
+
+  ipcMain.handle('app:setPreventSleep', (_event, enabled: unknown) => {
+    if (typeof enabled !== 'boolean') {
+      return { success: false, error: 'Invalid parameter: enabled must be boolean' };
+    }
+    try {
+      if (enabled) {
+        if (preventSleepBlockerId === null || !powerSaveBlocker.isStarted(preventSleepBlockerId)) {
+          preventSleepBlockerId = powerSaveBlocker.start('prevent-display-sleep');
+        }
+      } else {
+        if (preventSleepBlockerId !== null && powerSaveBlocker.isStarted(preventSleepBlockerId)) {
+          powerSaveBlocker.stop(preventSleepBlockerId);
+          preventSleepBlockerId = null;
+        }
+      }
+      getStore().set('prevent_sleep_enabled', enabled);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to set prevent-sleep',
       };
     }
   });
@@ -2682,6 +2713,16 @@ if (!gotTheLock) {
       getStore().set('auto_launch_initialized', true);
       getStore().set('auto_launch_enabled', true);
       setAutoLaunchEnabled(true);
+    }
+
+    // Restore prevent-sleep setting
+    const preventSleepEnabled = getStore().get<boolean>('prevent_sleep_enabled');
+    if (preventSleepEnabled) {
+      try {
+        preventSleepBlockerId = powerSaveBlocker.start('prevent-display-sleep');
+      } catch (err) {
+        console.error('[Main] Failed to start prevent-sleep blocker:', err);
+      }
     }
 
     let lastLanguage = getStore().get<AppConfigSettings>('app_config')?.language;
