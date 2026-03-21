@@ -289,6 +289,28 @@ export class IMStore {
       }
     }
 
+    // Migrate popo configs that have token but no connectionMode:
+    // These are existing webhook users from before connectionMode was introduced.
+    // Preserve their setup by explicitly setting connectionMode to 'webhook'.
+    const popoResult = this.db.exec('SELECT value FROM im_config WHERE key = ?', ['popo']);
+    if (popoResult[0]?.values[0]) {
+      try {
+        const popoConfig = JSON.parse(popoResult[0].values[0][0] as string) as Partial<PopoOpenClawConfig>;
+        if (popoConfig.token && !popoConfig.connectionMode) {
+          popoConfig.connectionMode = 'webhook';
+          const now = Date.now();
+          this.db.run(
+            'UPDATE im_config SET value = ?, updated_at = ? WHERE key = ?',
+            [JSON.stringify(popoConfig), now, 'popo']
+          );
+          changed = true;
+          console.log('[IMStore] Migrated popo config: inferred connectionMode=webhook from existing token');
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
     if (changed) {
       this.saveDb();
     }
