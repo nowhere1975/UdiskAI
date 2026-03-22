@@ -78,7 +78,7 @@ node -e 'const [a,b,c]=process.versions.node.split(".").map(Number);const ok=a>2
 # ---------------------------------------------------------------------------
 # Build cache: skip if the runtime was already built for the pinned version.
 # On Windows (Git Bash / MSYS2), paths like $ELECTRON_ROOT are Unix-style
-# (e.g. /d/github/LobsterAI) which Node.js cannot resolve via require().
+# (e.g. /d/github/UdiskAI) which Node.js cannot resolve via require().
 # Use "node -" with process.argv so MSYS2 auto-converts the paths.
 # ---------------------------------------------------------------------------
 DESIRED_VERSION=""

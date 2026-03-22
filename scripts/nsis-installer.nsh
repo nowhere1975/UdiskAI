@@ -21,10 +21,10 @@
 !macro customInstall
   ; ─── Install Timing Log ───
   ; Write timestamps to help diagnose slow installation phases.
-  ; Log file: %APPDATA%\LobsterAI\install-timing.log
+  ; Log file: %APPDATA%\UdiskAI\install-timing.log
 
-  CreateDirectory "$APPDATA\LobsterAI"
-  FileOpen $2 "$APPDATA\LobsterAI\install-timing.log" w
+  CreateDirectory "$APPDATA\UdiskAI"
+  FileOpen $2 "$APPDATA\UdiskAI\install-timing.log" w
 
   ${GetTime} "" "L" $3 $4 $5 $6 $7 $8 $9
   FileWrite $2 "extract-done: $5-$4-$3 $6:$7:$8$\r$\n"
@@ -63,7 +63,7 @@
   ; The warmup script is a no-op when the bundle is missing and exits 0 on
   ; any error, so it cannot block or break the installer.
 
-  StrCpy $1 "$APPDATA\LobsterAI\openclaw\state\.compile-cache"
+  StrCpy $1 "$APPDATA\UdiskAI\openclaw\state\.compile-cache"
 
   System::Call 'Kernel32::SetEnvironmentVariable(t "NODE_COMPILE_CACHE", t "$1")i'
 
