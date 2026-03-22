@@ -101,35 +101,6 @@
           "!**/test/**",
           "!**/__tests__/**"
         ]
-      },
-      {
-        "from": "vendor/openclaw-runtime/current",
-        "to": "cfmind",
-        "filter": [
-          "**/*",
-          "!**/*.map",
-          "!**/*.d.ts",
-          "!**/*.d.cts",
-          "!**/*.d.mts",
-          "!**/README.md",
-          "!**/README",
-          "!**/readme.md",
-          "!**/CHANGELOG.md",
-          "!**/CHANGELOG",
-          "!**/HISTORY.md",
-          "!**/LICENSE",
-          "!**/LICENSE.md",
-          "!**/LICENSE.txt",
-          "!**/.eslintrc*",
-          "!**/.prettierrc*",
-          "!**/tsconfig.json",
-          "!**/tsconfig.*.json",
-          "!**/*.test.*",
-          "!**/*.spec.*",
-                "!**/tests/**",
-          "!**/test/**",
-          "!**/__tests__/**"
-        ]
       }
     ]
   },
@@ -149,8 +120,11 @@
         "to": "win-resources.tar"
       },
       {
-        "from": "scripts/unpack-cfmind.cjs",
-        "to": "unpack-cfmind.cjs"
+        "from": "resources/python-win",
+        "to": "python-win",
+        "filter": [
+          "**/*"
+        ]
       }
     ]
   },
@@ -194,35 +168,6 @@
           "!**/test/**",
           "!**/__tests__/**"
         ]
-      },
-      {
-        "from": "vendor/openclaw-runtime/current",
-        "to": "cfmind",
-        "filter": [
-          "**/*",
-          "!**/*.map",
-          "!**/*.d.ts",
-          "!**/*.d.cts",
-          "!**/*.d.mts",
-          "!**/README.md",
-          "!**/README",
-          "!**/readme.md",
-          "!**/CHANGELOG.md",
-          "!**/CHANGELOG",
-          "!**/HISTORY.md",
-          "!**/LICENSE",
-          "!**/LICENSE.md",
-          "!**/LICENSE.txt",
-          "!**/.eslintrc*",
-          "!**/.prettierrc*",
-          "!**/tsconfig.json",
-          "!**/tsconfig.*.json",
-          "!**/*.test.*",
-          "!**/*.spec.*",
-                "!**/tests/**",
-          "!**/test/**",
-          "!**/__tests__/**"
-        ]
       }
     ],
     "desktop": {
@@ -243,7 +188,6 @@
     "node_modules/@anthropic-ai/claude-agent-sdk/**",
     "node_modules/@img/**",
     "node_modules/sql.js/dist/**",
-    "node_modules/node-nim/**",
     "node_modules/npm/**"
   ],
   "asar": true

@@ -1552,7 +1552,7 @@ export class SkillManager {
         win.webContents.send('skills:changed');
       }
     });
-    // Notify external listeners (e.g. OpenClaw AGENTS.md sync)
+    // Notify external listeners
     for (const listener of this.changeListeners) {
       try {
         listener();
