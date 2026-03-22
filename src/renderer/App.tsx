@@ -25,6 +25,7 @@ import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import { i18nService } from './services/i18n';
 import { matchesShortcut } from './services/shortcuts';
 import SetupWizard from './components/SetupWizard';
+import PrivacyDialog from './components/PrivacyDialog';
 
 const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
@@ -36,6 +37,7 @@ const App: React.FC = () => {
   const [, forceLanguageRefresh] = useState(0);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
+  const [privacyAgreed, setPrivacyAgreed] = useState<boolean | null>(null);
   const toastTimerRef = useRef<number | null>(null);
   const hasInitialized = useRef(false);
   const dispatch = useDispatch();
@@ -140,6 +142,10 @@ const App: React.FC = () => {
             (p) => !p.enabled || !p.apiKey
           ));
         setShowSetupWizard(needsSetup);
+
+        // 检查隐私协议是否已同意（必须在 setIsInitialized 之前）
+        const agreed = await window.electron.store.get('privacy_agreed');
+        setPrivacyAgreed(agreed === true);
 
         setIsInitialized(true);
         console.info('[App] initializeApp: shell ready');
@@ -261,6 +267,17 @@ const App: React.FC = () => {
   const handleShowLogin = useCallback(() => {
     showToast(i18nService.t('featureInDevelopment'));
   }, [showToast]);
+
+  const handlePrivacyAccept = useCallback(async () => {
+    await window.electron.store.set('privacy_agreed', true);
+    setPrivacyAgreed(true);
+  }, []);
+
+  const handlePrivacyReject = useCallback(() => {
+    // 立刻隐藏窗口，让用户感觉立即关闭
+    window.electron.window.close();
+  }, []);
+
 
   const handlePermissionResponse = useCallback(async (result: CoworkPermissionResult) => {
     if (!pendingPermission) return;
@@ -474,7 +491,7 @@ const App: React.FC = () => {
           onToggleCollapse={handleToggleSidebar}
         />
         <div className={`flex-1 min-w-0 py-1.5 pr-1.5 ${isSidebarCollapsed ? 'pl-1.5' : ''}`}>
-          <div className="h-full min-h-0 rounded-xl dark:bg-claude-darkBg bg-claude-bg overflow-hidden">
+          <div className="relative h-full min-h-0 rounded-xl dark:bg-claude-darkBg bg-claude-bg overflow-hidden">
             {mainView === 'skills' ? (
               <SkillsView
                 isSidebarCollapsed={isSidebarCollapsed}
@@ -515,6 +532,12 @@ const App: React.FC = () => {
         />
       )}
       {permissionModal}
+      {privacyAgreed === false && (
+        <PrivacyDialog
+          onAccept={handlePrivacyAccept}
+          onReject={handlePrivacyReject}
+        />
+      )}
     </div>
   );
 };

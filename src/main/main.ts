@@ -44,7 +44,7 @@ type McpBridgeConfig = {
   secret: string;
   tools: Array<{ name: string; description: string; inputSchema: object }>;
 };
-import { initLogger, getLogFilePath } from './logger';
+import { initLogger, getLogFilePath, getRecentMainLogEntries } from './logger';
 import { getCoworkLogPath } from './libs/coworkLogger';
 import { exportLogsZip } from './libs/logExport';
 import { ensurePythonRuntimeReady } from './libs/pythonRuntime';
@@ -1046,7 +1046,7 @@ if (!gotTheLock) {
       const archiveResult = await exportLogsZip({
         outputPath,
         entries: [
-          { archiveName: 'main.log', filePath: getLogFilePath() },
+          ...getRecentMainLogEntries(),
           { archiveName: 'cowork.log', filePath: getCoworkLogPath() },
         ],
       });
@@ -1150,6 +1150,17 @@ if (!gotTheLock) {
 
   ipcMain.handle('skills:download', async (_event, source: string) => {
     return getSkillManager().downloadSkill(source);
+  });
+
+  ipcMain.handle('skills:confirmInstall', async (_event, pendingId: string, action: string) => {
+    const validActions = ['install', 'installDisabled', 'cancel'];
+    if (!validActions.includes(action)) {
+      return { success: false, error: 'Invalid action' };
+    }
+    return getSkillManager().confirmPendingInstall(
+      pendingId,
+      action as 'install' | 'installDisabled' | 'cancel'
+    );
   });
 
   ipcMain.handle('skills:getRoot', () => {
@@ -1478,6 +1489,19 @@ if (!gotTheLock) {
     try {
       const coworkStoreInstance = getCoworkStore();
       coworkStoreInstance.deleteSessions(sessionIds);
+      const router = getCoworkEngineRouter();
+      for (const sessionId of sessionIds) {
+        try {
+          getIMGatewayManager()?.getIMStore()?.deleteSessionMappingByCoworkSessionId(sessionId);
+        } catch {
+          // IM store may not be initialised yet; safe to ignore.
+        }
+        try {
+          router.onSessionDeleted(sessionId);
+        } catch {
+          // Router may not be initialised yet; safe to ignore.
+        }
+      }
       return { success: true };
     } catch (error) {
       return {
@@ -1525,6 +1549,19 @@ if (!gotTheLock) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get session',
+      };
+    }
+  });
+
+  ipcMain.handle('cowork:session:remoteManaged', async (_event, sessionId: string) => {
+    try {
+      const mapping = getIMGatewayManager()?.getIMStore()?.getSessionMappingByCoworkSessionId(sessionId);
+      return { success: true, remoteManaged: !!mapping };
+    } catch (error) {
+      return {
+        success: false,
+        remoteManaged: false,
+        error: error instanceof Error ? error.message : 'Failed to check remote managed session',
       };
     }
   });

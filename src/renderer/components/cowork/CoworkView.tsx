@@ -13,6 +13,7 @@ import CoworkSessionDetail from './CoworkSessionDetail';
 import ModelSelector from '../ModelSelector';
 import SidebarToggleIcon from '../icons/SidebarToggleIcon';
 import ComposeIcon from '../icons/ComposeIcon';
+import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 import WindowTitleBar from '../window/WindowTitleBar';
 import { QuickActionBar, PromptPanel } from '../quick-actions';
 import type { SettingsOpenOptions } from '../Settings';
@@ -370,7 +371,15 @@ const CoworkView: React.FC<CoworkViewProps> = ({ onRequestAppSettings, onShowSki
         )}
         <ModelSelector />
       </div>
-      <WindowTitleBar inline />
+      <div className="non-draggable flex items-center">
+        <div className="flex items-center gap-1.5 mr-2 px-2.5 py-1">
+          <ShieldCheckIcon className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+          <span className="text-xs text-green-600 dark:text-green-400 whitespace-nowrap">
+            {i18nService.t('lobsterGuardEnabled')}
+          </span>
+        </div>
+        <WindowTitleBar inline />
+      </div>
     </div>
   );
 
