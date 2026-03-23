@@ -288,11 +288,18 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
   }, [onManageSkills]);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Enter to submit, Shift+Enter for new line
+    // Enter to submit, any modifier+Enter (Shift/Ctrl/Cmd/Alt) for new line
     const isComposing = event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229;
-    if (event.key === 'Enter' && !event.shiftKey && !isComposing && !isStreaming && !disabled) {
-      event.preventDefault();
-      handleSubmit();
+    if (event.key === 'Enter' && !isComposing) {
+      const hasModifier = event.shiftKey || event.ctrlKey || event.metaKey || event.altKey;
+      if (!hasModifier && !isStreaming && !disabled) {
+        event.preventDefault();
+        handleSubmit();
+      } else if (hasModifier && !event.shiftKey) {
+        // Shift+Enter already inserts newline natively; for Ctrl/Cmd/Alt+Enter, insert via execCommand to preserve undo history
+        event.preventDefault();
+        document.execCommand('insertText', false, '\n');
+      }
     }
   };
 
