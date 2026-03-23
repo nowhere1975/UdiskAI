@@ -78,8 +78,8 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
     }
     .hero-inner {
       position: relative; z-index: 1;
-      max-width: 1120px; margin: 0 auto;
-      display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center;
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: 2fr 3fr; gap: 32px; align-items: center;
       animation: fadeUp 0.75s ease both;
     }
     @keyframes fadeUp {
