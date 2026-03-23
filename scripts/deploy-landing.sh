@@ -185,6 +185,37 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
       .steps-row::before { display: none; }
       .step { padding: 0; }
     }
+    /* SCREENSHOT */
+    .preview {
+      padding: 0 24px 88px;
+      background: var(--white);
+    }
+    .preview-inner {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .preview-frame {
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.06), 0 32px 80px rgba(99,102,241,0.12), 0 0 0 1px rgba(0,0,0,0.06);
+    }
+    .preview-bar {
+      background: #f1f3f5;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .preview-dot {
+      width: 12px; height: 12px; border-radius: 50%;
+    }
+    .preview-frame img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
     @media (max-width: 480px) {
       .hero { padding: 72px 20px; }
       .nav-inner { padding: 0 16px; }
@@ -227,6 +258,19 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
         免费下载
       </a>
       <span class="hero-note">Windows 便携版 · 免费使用</span>
+    </div>
+  </div>
+</section>
+
+<section class="preview">
+  <div class="preview-inner">
+    <div class="preview-frame">
+      <div class="preview-bar">
+        <span class="preview-dot" style="background:#ff5f57"></span>
+        <span class="preview-dot" style="background:#febc2e"></span>
+        <span class="preview-dot" style="background:#28c840"></span>
+      </div>
+      <img src="/screenshot.png" alt="UdiskAI 界面截图" />
     </div>
   </div>
 </section>
@@ -313,15 +357,18 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
 </html>
 HTMLEOF
 
-echo "===> [4/6] 复制 logo..."
-# 从 GitHub 下载 logo（如果 wget 可用）
-if command -v wget &>/dev/null; then
-  wget -q "https://raw.githubusercontent.com/nowhere1975/UdiskAI/main/public/logo.png" \
-    -O "$WEBROOT/logo.png" 2>/dev/null || echo "    logo 下载失败，请手动上传 logo.png 到 $WEBROOT/"
-else
-  curl -s "https://raw.githubusercontent.com/nowhere1975/UdiskAI/main/public/logo.png" \
-    -o "$WEBROOT/logo.png" 2>/dev/null || echo "    logo 下载失败，请手动上传 logo.png 到 $WEBROOT/"
-fi
+echo "===> [4/6] 下载 logo 和截图..."
+BASE_URL="https://raw.githubusercontent.com/nowhere1975/UdiskAI/main"
+dl() {
+  local url="$1" dest="$2"
+  if command -v wget &>/dev/null; then
+    wget -q "$url" -O "$dest" 2>/dev/null || echo "    下载失败：$url，请手动上传到 $dest"
+  else
+    curl -sL "$url" -o "$dest" 2>/dev/null || echo "    下载失败：$url，请手动上传到 $dest"
+  fi
+}
+dl "$BASE_URL/public/logo.png"                        "$WEBROOT/logo.png"
+dl "$BASE_URL/scripts/web-assets/screenshot.png"      "$WEBROOT/screenshot.png"
 
 echo "===> [5/6] 配置 nginx..."
 cat > /etc/nginx/sites-available/udiskai << NGINXEOF
