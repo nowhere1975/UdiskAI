@@ -7,7 +7,6 @@ import Toast from './components/Toast';
 import WindowTitleBar from './components/window/WindowTitleBar';
 import { CoworkView } from './components/cowork';
 import { SkillsView } from './components/skills';
-import { ScheduledTasksView } from './components/scheduledTasks';
 import { McpView } from './components/mcp';
 import CoworkPermissionModal from './components/cowork/CoworkPermissionModal';
 import CoworkQuestionWizard from './components/cowork/CoworkQuestionWizard';
@@ -15,7 +14,6 @@ import { configService } from './services/config';
 import { apiService } from './services/api';
 import { themeService } from './services/theme';
 import { coworkService } from './services/cowork';
-import { scheduledTaskService } from './services/scheduledTask';
 import { defaultConfig } from './config';
 import { setAvailableModels, setSelectedModel } from './store/slices/modelSlice';
 import { clearSelection } from './store/slices/quickActionSlice';
@@ -30,7 +28,7 @@ import PrivacyDialog from './components/PrivacyDialog';
 const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [settingsOptions, setSettingsOptions] = useState<SettingsOpenOptions>({});
-  const [mainView, setMainView] = useState<'cowork' | 'skills' | 'scheduledTasks' | 'mcp'>('cowork');
+  const [mainView, setMainView] = useState<'cowork' | 'skills' | 'mcp'>('cowork');
   const [isInitialized, setIsInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -150,10 +148,6 @@ const App: React.FC = () => {
         setIsInitialized(true);
         console.info('[App] initializeApp: shell ready');
 
-        // 初始化定时任务服务，但不阻塞首屏
-        void waitWithTimeout(scheduledTaskService.init(), 5000, 'scheduledTaskService.init').catch((error) => {
-          console.error('[App] initializeApp: scheduledTaskService.init failed:', error);
-        });
 
       } catch (error) {
         console.error('Failed to initialize app:', error);
@@ -227,10 +221,6 @@ const App: React.FC = () => {
 
   const handleShowCowork = useCallback(() => {
     setMainView('cowork');
-  }, []);
-
-  const handleShowScheduledTasks = useCallback(() => {
-    setMainView('scheduledTasks');
   }, []);
 
   const handleShowMcp = useCallback(() => {
@@ -484,7 +474,6 @@ const App: React.FC = () => {
           activeView={mainView}
           onShowSkills={handleShowSkills}
           onShowCowork={handleShowCowork}
-          onShowScheduledTasks={handleShowScheduledTasks}
           onShowMcp={handleShowMcp}
           onNewChat={handleNewChat}
           isCollapsed={isSidebarCollapsed}
@@ -494,12 +483,6 @@ const App: React.FC = () => {
           <div className="relative h-full min-h-0 rounded-xl dark:bg-claude-darkBg bg-claude-bg overflow-hidden">
             {mainView === 'skills' ? (
               <SkillsView
-                isSidebarCollapsed={isSidebarCollapsed}
-                onToggleSidebar={handleToggleSidebar}
-                onNewChat={handleNewChat}
-              />
-            ) : mainView === 'scheduledTasks' ? (
-              <ScheduledTasksView
                 isSidebarCollapsed={isSidebarCollapsed}
                 onToggleSidebar={handleToggleSidebar}
                 onNewChat={handleNewChat}

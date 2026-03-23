@@ -4,8 +4,6 @@ import coworkReducer from './slices/coworkSlice';
 import skillReducer from './slices/skillSlice';
 import mcpReducer from './slices/mcpSlice';
 import quickActionReducer from './slices/quickActionSlice';
-import scheduledTaskReducer from './slices/scheduledTaskSlice';
-
 export const store = configureStore({
   reducer: {
     model: modelReducer,
@@ -13,7 +11,6 @@ export const store = configureStore({
     skill: skillReducer,
     mcp: mcpReducer,
     quickAction: quickActionReducer,
-    scheduledTask: scheduledTaskReducer,
   },
 });
 

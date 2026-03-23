@@ -2,22 +2,22 @@
   "version": 1,
   "actions": [
     {
-      "id": "pptx",
-      "icon": "PresentationChartBarIcon",
-      "color": "#F59E0B",
-      "skillMapping": "pptx",
+      "id": "cn-docx",
+      "icon": "DocumentTextIcon",
+      "color": "#2563EB",
+      "skillMapping": "cn-docx",
       "prompts": [
         {
-          "id": "pptx-work-report"
+          "id": "docx-work-report"
         },
         {
-          "id": "pptx-content-research"
+          "id": "docx-meeting-minutes"
         },
         {
-          "id": "pptx-education"
+          "id": "docx-project-proposal"
         },
         {
-          "id": "pptx-ai-intro"
+          "id": "docx-summary"
         }
       ]
     },
@@ -58,26 +58,6 @@
         },
         {
           "id": "edu-knowledge-explain"
-        }
-      ]
-    },
-    {
-      "id": "website",
-      "icon": "GlobeAltIcon",
-      "color": "#3B82F6",
-      "skillMapping": "frontend-design",
-      "prompts": [
-        {
-          "id": "web-resume"
-        },
-        {
-          "id": "web-store"
-        },
-        {
-          "id": "web-event"
-        },
-        {
-          "id": "web-survey"
         }
       ]
     }

@@ -8,7 +8,6 @@ import CoworkSearchModal from './cowork/CoworkSearchModal';
 import ComposeIcon from './icons/ComposeIcon';
 import ConnectorIcon from './icons/ConnectorIcon';
 import SearchIcon from './icons/SearchIcon';
-import ClockIcon from './icons/ClockIcon';
 import PuzzleIcon from './icons/PuzzleIcon';
 import SidebarToggleIcon from './icons/SidebarToggleIcon';
 import TrashIcon from './icons/TrashIcon';
@@ -17,10 +16,9 @@ import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 interface SidebarProps {
   onShowSettings: () => void;
   onShowLogin?: () => void;
-  activeView: 'cowork' | 'skills' | 'scheduledTasks' | 'mcp';
+  activeView: 'cowork' | 'skills' | 'mcp';
   onShowSkills: () => void;
   onShowCowork: () => void;
-  onShowScheduledTasks: () => void;
   onShowMcp: () => void;
   onNewChat: () => void;
   isCollapsed: boolean;
@@ -33,7 +31,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   activeView,
   onShowSkills,
   onShowCowork,
-  onShowScheduledTasks,
   onShowMcp,
   onNewChat,
   isCollapsed,
@@ -171,21 +168,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           >
             <SearchIcon className="h-4 w-4" />
             {i18nService.t('search')}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setIsSearchOpen(false);
-              onShowScheduledTasks();
-            }}
-            className={`w-full inline-flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
-              activeView === 'scheduledTasks'
-                ? 'bg-claude-accent/10 text-claude-accent hover:bg-claude-accent/20'
-                : 'dark:text-claude-darkTextSecondary text-claude-textSecondary hover:text-claude-text dark:hover:text-claude-darkText hover:bg-claude-surfaceHover dark:hover:bg-claude-darkSurfaceHover'
-            }`}
-          >
-            <ClockIcon className="h-4 w-4" />
-            {i18nService.t('scheduledTasks')}
           </button>
           <button
             type="button"

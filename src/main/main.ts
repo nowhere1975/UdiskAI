@@ -2,7 +2,6 @@ import { app, BrowserWindow, ipcMain, session, nativeTheme, dialog, shell, nativ
 import type { WebContents } from 'electron';
 import path from 'path';
 import fs from 'fs';
-import os from 'os';
 import { spawn } from 'child_process';
 import { SqliteStore } from './sqliteStore';
 import { CoworkStore } from './coworkStore';
@@ -23,7 +22,6 @@ import { createTray, destroyTray, updateTrayMenu } from './trayManager';
 import { setLanguage } from './i18n';
 import { isAutoLaunched, getAutoLaunchEnabled, setAutoLaunchEnabled } from './autoLaunchManager';
 import { McpStore } from './mcpStore';
-import { CronJobService } from './libs/cronJobService';
 import {
   resolveMemoryFilePath,
   readMemoryEntries,
@@ -69,9 +67,6 @@ const IPC_MAX_DEPTH = 5;
 const IPC_MAX_KEYS = 80;
 const IPC_MAX_ITEMS = 40;
 const MAX_INLINE_ATTACHMENT_BYTES = 25 * 1024 * 1024;
-const SCHEDULED_TASK_CHANNEL_OPTIONS = [
-  { value: 'last', label: 'Last conversation' },
-] as const;
 const MIME_EXTENSION_MAP: Record<string, string> = {
   'image/png': '.png',
   'image/jpeg': '.jpg',
@@ -547,7 +542,6 @@ let mcpServerManager: McpServerManager | null = null;
 let mcpBridgeServer: McpBridgeServer | null = null;
 let mcpBridgeSecret: string | null = null;
 let mcpBridgeStartPromise: Promise<McpBridgeConfig | null> | null = null;
-let cronJobService: CronJobService | null = null;
 let storeInitPromise: Promise<SqliteStore> | null = null;
 let coworkRuntimeForwarderBound = false;
 let memoryMigrationDone = false;
@@ -814,19 +808,6 @@ const refreshMcpBridge = (): Promise<{ tools: number; error?: string }> => {
   return mcpBridgeRefreshPromise;
 };
 
-const getCronJobService = (): CronJobService => {
-  if (!cronJobService) {
-    cronJobService = new CronJobService({
-      getGatewayClient: () => null,
-      ensureGatewayReady: async () => {},
-    });
-  }
-  return cronJobService;
-};
-
-function listScheduledTaskChannels(): Array<{ value: string; label: string }> {
-  return [...SCHEDULED_TASK_CHANNEL_OPTIONS];
-}
 
 function mergeCoworkSystemPrompt(
   systemPrompt?: string,
@@ -1899,123 +1880,6 @@ if (!gotTheLock) {
     }
   });
 
-  // ==================== Scheduled Task IPC Handlers ====================
-
-  ipcMain.handle('scheduledTask:list', async () => {
-    try {
-      const tasks = await getCronJobService().listJobs();
-      return { success: true, tasks };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to list tasks' };
-    }
-  });
-
-  ipcMain.handle('scheduledTask:get', async (_event, id: string) => {
-    try {
-      const task = await getCronJobService().getJob(id);
-      return { success: true, task };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to get task' };
-    }
-  });
-
-  ipcMain.handle('scheduledTask:create', async (_event, input: any) => {
-    try {
-      const normalizedInput = input && typeof input === 'object' ? { ...input } : {};
-      const task = await getCronJobService().addJob(normalizedInput);
-      return { success: true, task };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to create task' };
-    }
-  });
-
-  ipcMain.handle('scheduledTask:update', async (_event, id: string, input: any) => {
-    try {
-      const normalizedInput = input && typeof input === 'object' ? { ...input } : {};
-      const task = await getCronJobService().updateJob(id, normalizedInput);
-      return { success: true, task };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to update task' };
-    }
-  });
-
-  ipcMain.handle('scheduledTask:delete', async (_event, id: string) => {
-    try {
-      await getCronJobService().removeJob(id);
-      return { success: true, result: true };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to delete task' };
-    }
-  });
-
-  ipcMain.handle('scheduledTask:toggle', async (_event, id: string, enabled: boolean) => {
-    try {
-      const task = await getCronJobService().toggleJob(id, enabled);
-      return { success: true, task };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to toggle task' };
-    }
-  });
-
-  ipcMain.handle('scheduledTask:runManually', async (_event, id: string) => {
-    try {
-      await getCronJobService().runJob(id);
-      return { success: true };
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      console.error(`[IPC] Manual run failed for ${id}:`, msg);
-      return { success: false, error: msg };
-    }
-  });
-
-  ipcMain.handle('scheduledTask:stop', async (_event, id: string) => {
-    try {
-      // No direct stop API for running cron jobs
-      // The job will complete or timeout on its own
-      return { success: true, result: false };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to stop task' };
-    }
-  });
-
-  ipcMain.handle('scheduledTask:listRuns', async (_event, taskId: string, limit?: number, offset?: number) => {
-    try {
-      const runs = await getCronJobService().listRuns(taskId, limit, offset);
-      return { success: true, runs };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to list runs' };
-    }
-  });
-
-  ipcMain.handle('scheduledTask:countRuns', async (_event, taskId: string) => {
-    try {
-      const count = await getCronJobService().countRuns(taskId);
-      return { success: true, count };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to count runs' };
-    }
-  });
-
-  ipcMain.handle('scheduledTask:listAllRuns', async (_event, limit?: number, offset?: number) => {
-    try {
-      const runs = await getCronJobService().listAllRuns(limit, offset);
-      return { success: true, runs };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to list all runs' };
-    }
-  });
-
-  ipcMain.handle('scheduledTask:resolveSession', async (_event, _sessionKey: string) => {
-    return { success: true, session: null };
-  });
-
-  ipcMain.handle('scheduledTask:listChannels', async () => {
-    try {
-      return { success: true, channels: listScheduledTaskChannels() };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to list channels' };
-    }
-  });
 
   // ==================== Permissions IPC Handlers ====================
 
@@ -2609,12 +2473,6 @@ if (!gotTheLock) {
       // 窗口就绪后创建系统托盘
       createTray(() => mainWindow);
 
-      // Start cron polling after the window is ready.
-      try {
-        getCronJobService().startPolling();
-      } catch (err) {
-        console.warn('[Main] CronJobService startPolling failed:', err);
-      }
     });
   };
 
@@ -2640,10 +2498,6 @@ if (!gotTheLock) {
     const skillServices = getSkillServiceManager();
     await skillServices.stopAll();
 
-    // Stop the cron job polling
-    if (cronJobService) {
-      cronJobService.stopPolling();
-    }
   };
 
   app.on('before-quit', (e) => {
@@ -2698,11 +2552,11 @@ if (!gotTheLock) {
     // Note: Calendar permission is checked on-demand when calendar operations are requested
     // We don't trigger permission dialogs at startup to avoid annoying users
 
-    // Ensure default working directory exists
-    const defaultProjectDir = path.join(os.homedir(), 'lobsterai', 'project');
+    // Ensure default working directory exists (portable: inside USB data/project)
+    const defaultProjectDir = path.join(app.getPath('userData'), 'project');
     if (!fs.existsSync(defaultProjectDir)) {
       fs.mkdirSync(defaultProjectDir, { recursive: true });
-      console.log('Created default project directory:', defaultProjectDir);
+      console.log('[Main] Created default project directory:', defaultProjectDir);
     }
     console.log('[Main] initApp: default project dir ensured');
 

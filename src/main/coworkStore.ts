@@ -1,7 +1,6 @@
 import { app } from 'electron';
 import crypto from 'crypto';
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 import { Database } from 'sql.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,9 +11,10 @@ import {
 } from './libs/coworkMemoryExtractor';
 import { judgeMemoryCandidate } from './libs/coworkMemoryJudge';
 
-// Default working directory for new users
+// Default working directory for new users.
+// In portable mode, app.getPath('userData') is already remapped to the USB data/ folder.
 const getDefaultWorkingDirectory = (): string => {
-  return path.join(os.homedir(), 'lobsterai', 'project');
+  return path.join(app.getPath('userData'), 'project');
 };
 
 const TASK_WORKSPACE_CONTAINER_DIR = '.lobsterai-tasks';

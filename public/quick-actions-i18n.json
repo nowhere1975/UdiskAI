@@ -1,27 +1,27 @@
 {
   "zh": {
-    "pptx": {
-      "label": "制作幻灯片",
+    "cn-docx": {
+      "label": "生成Word文档",
       "prompts": {
-        "pptx-work-report": {
-          "label": "工作汇报",
-          "description": "季度工作总结与下阶段规划汇报",
-          "prompt": "制作一份季度工作汇报 PPT,包含以下内容:\n\n1. 本季度核心工作成果回顾\n2. 关键项目进展与里程碑达成情况\n3. 重点数据指标完成度(用图表呈现)\n4. 遇到的问题与解决方案\n5. 团队协作亮点\n6. 下季度工作计划与目标\n7. 需要的资源支持\n\n风格要求:简洁商务风,逻辑清晰,数据可视化,适合向管理层汇报。"
+        "docx-work-report": {
+          "label": "工作总结",
+          "description": "季度或年度工作总结报告",
+          "prompt": "请帮我生成一份季度工作总结Word文档，包含以下内容：\n\n1. 本季度核心工作成果\n2. 重点项目进展与里程碑\n3. 关键数据指标完成情况\n4. 遇到的问题与解决方案\n5. 下季度工作计划\n\n格式要求：专业商务风格，结构清晰，适合向管理层汇报。"
         },
-        "pptx-content-research": {
-          "label": "内容调研",
-          "description": "行业趋势与竞品分析调研报告",
-          "prompt": "制作一份行业调研分析报告 PPT,涵盖以下板块:\n\n1. 调研背景与目的说明\n2. 行业整体发展现状与市场规模\n3. 主要竞品对比分析(功能、定价、用户口碑)\n4. 目标用户画像与核心需求洞察\n5. 行业趋势与机会点总结\n6. 可落地的策略建议\n\n风格要求:数据驱动,图表丰富,观点有理有据,适合团队内部分享讨论。"
+        "docx-meeting-minutes": {
+          "label": "会议纪要",
+          "description": "规范化的会议记录文档",
+          "prompt": "请帮我生成一份会议纪要Word文档，包含：\n\n1. 会议基本信息（时间、地点、参会人员）\n2. 会议议题与讨论要点\n3. 重要决策与结论\n4. 行动计划（责任人、截止日期）\n5. 下次会议安排\n\n格式要求：正式规范，条理清晰，便于存档和跟进。"
         },
-        "pptx-education": {
-          "label": "教育教学",
-          "description": "课堂教学课件与知识讲解",
-          "prompt": "制作一套关于「太阳系与行星探索」的科普教学课件,适合中学生课堂使用,包含:\n\n1. 太阳系全景概览\n2. 八大行星的基本特征对比(大小、距离、温度等)\n3. 地球的特殊性——为什么适合生命存在\n4. 人类探索太空的重要里程碑\n5. 课堂互动问答环节(设计 3-4 道思考题)\n6. 拓展阅读推荐\n\n风格要求:生动活泼,配色明快,内容由浅入深,激发学生好奇心与探索欲。"
+        "docx-project-proposal": {
+          "label": "项目方案",
+          "description": "项目立项或实施方案文档",
+          "prompt": "请帮我生成一份项目方案Word文档，包含：\n\n1. 项目背景与目标\n2. 项目范围与内容\n3. 实施计划与时间节点\n4. 资源需求与预算估算\n5. 风险分析与应对措施\n6. 预期成果与效益\n\n格式要求：逻辑严密，内容翔实，适合提交审批。"
         },
-        "pptx-ai-intro": {
-          "label": "人工智能入门",
-          "description": "零基础了解 AI 的科普演示",
-          "prompt": "制作一份面向零基础观众的人工智能入门科普 PPT,内容包括:\n\n1. 什么是人工智能——用生活中的例子解释\n2. AI 的发展简史(从图灵测试到大语言模型)\n3. 常见的 AI 应用场景(语音助手、推荐系统、自动驾驶等)\n4. 机器学习的基本原理(用直观类比说明)\n5. 大模型与 ChatGPT 是怎么工作的\n6. AI 能做什么、不能做什么\n7. 普通人如何开始使用 AI 工具提升效率\n\n风格要求:通俗易懂,多用图示和类比,避免专业术语堆砌,让完全不懂技术的人也能看明白。"
+        "docx-summary": {
+          "label": "汇报材料",
+          "description": "工作汇报或情况说明文档",
+          "prompt": "请帮我生成一份工作汇报Word文档，包含：\n\n1. 工作概述\n2. 主要工作内容与进展\n3. 取得的成效\n4. 存在的问题与建议\n5. 下一步工作安排\n\n格式要求：简洁明了，重点突出，适合汇报使用。"
         }
       }
     },
@@ -74,56 +74,31 @@
           "prompt": "请用通俗易懂的语言给我科普「光合作用」这个知识点:\n\n1. 用一句话概括光合作用是什么\n2. 用生活中的类比来解释它的原理\n3. 画出光合作用的简要过程(文字版流程图)\n4. 说明光合作用对地球和人类的重要意义\n5. 提出 3 个思考题,帮助我加深理解"
         }
       }
-    },
-    "website": {
-      "label": "创建网站",
-      "prompts": {
-        "web-resume": {
-          "label": "个人简历",
-          "description": "在线简历与作品集页面",
-          "prompt": "帮我制作一个精美的在线个人简历页面。\n\n基本信息:\n- 姓名:张小明\n- 职位:产品经理(5年经验)\n- 联系方式:邮箱、手机、微信二维码占位区\n\n页面内容:\n- 个人简介:一段简短的自我介绍,突出核心优势\n- 工作经历:3段工作经历,含公司名、职位、时间、主要成果\n- 专业技能:以进度条形式展示产品设计、数据分析、项目管理等技能\n- 项目案例:展示3个代表项目的卡片,含项目名称和简短描述\n- 教育背景与证书\n\n设计风格:\n简洁专业、左右分栏布局、深色侧边栏搭配白色主内容区。适合直接分享给面试官或合作伙伴。"
-        },
-        "web-store": {
-          "label": "店铺主页",
-          "description": "小型商铺或工作室展示页",
-          "prompt": "帮我做一个烘焙工作室的展示网页,工作室名叫「麦田烘焙」。\n\n页面内容:\n- 首屏大图:工作室名称、一句口号「用心烘焙,温暖每一天」、\"查看菜单\"按钮\n- 招牌产品:展示6款人气产品卡片(含图片占位、名称、价格、简短描述)\n- 关于我们:工作室的故事,创始人理念,配一张店内环境图占位\n- 顾客好评:3条用户评价,带头像和星级评分\n- 联系与地址:营业时间、地址、电话,嵌入地图占位区域\n\n设计风格:\n温馨文艺、奶油色和棕色为主色调、圆角卡片、手写风格标题字体。整体氛围温暖亲切。"
-        },
-        "web-event": {
-          "label": "活动邀请函",
-          "description": "聚会、婚礼或活动的在线邀请页",
-          "prompt": "帮我制作一个生日派对的在线邀请函网页。\n\n活动信息:\n- 主题:「Leo的30岁生日派对」\n- 时间:2025年8月15日 周六 晚上7:00\n- 地点:星光花园餐厅 三楼露台\n\n页面内容:\n- 开场动画:标题渐入,彩色纸屑飘落效果\n- 邀请语:一段温馨的邀请文字\n- 活动安排:时间轴展示派对流程(签到、晚宴、游戏、蛋糕、自由交流)\n- 着装建议:休闲正装,配色参考图占位\n- 交通指引:地址信息和停车提示\n- RSVP确认:\"我会参加\"和\"很遗憾不能到\"两个按钮\n\n设计风格:\n浪漫活泼、深蓝色星空背景、金色点缀文字、充满庆祝氛围。页面要适合手机浏览。"
-        },
-        "web-survey": {
-          "label": "调查问卷",
-          "description": "在线表单与问卷收集页",
-          "prompt": "帮我做一个客户满意度调查问卷网页。\n\n问卷标题:「您的反馈对我们很重要」\n\n问卷内容:\n- 基本信息:姓名(选填)、联系方式(选填)\n- 单选题:整体满意度(非常满意/满意/一般/不满意/非常不满意)\n- 单选题:您是否愿意推荐给朋友(1-10分评分滑块)\n- 多选题:您最看重的方面(产品质量/服务态度/响应速度/性价比/售后保障)\n- 单选题:使用频率(每天/每周/每月/偶尔)\n- 文本题:您的建议或意见(大文本框)\n- 提交按钮,提交后显示感谢页面\n\n设计风格:\n清爽简洁、白色背景、蓝绿色主色调、每道题之间有足够间距、带进度条显示填写进度。适合手机端操作。"
-        }
-      }
     }
   },
   "en": {
-    "pptx": {
-      "label": "Create Slides",
+    "cn-docx": {
+      "label": "Generate Word Doc",
       "prompts": {
-        "pptx-work-report": {
-          "label": "Work Report",
-          "description": "Quarterly summary and next phase planning report",
-          "prompt": "Create a quarterly work report PPT with the following content:\n\n1. Review of core work achievements this quarter\n2. Key project progress and milestone completion\n3. Performance metrics completion (visualized with charts)\n4. Problems encountered and solutions\n5. Team collaboration highlights\n6. Next quarter work plans and objectives\n7. Resource support needed\n\nStyle requirements: Concise business style, clear logic, data visualization, suitable for management reporting."
+        "docx-work-report": {
+          "label": "Work Summary",
+          "description": "Quarterly or annual work summary report",
+          "prompt": "Please help me generate a quarterly work summary Word document with the following content:\n\n1. Core work achievements this quarter\n2. Key project progress and milestones\n3. Key metrics completion status\n4. Issues encountered and solutions\n5. Next quarter work plan\n\nStyle: Professional business format, clear structure, suitable for management reporting."
         },
-        "pptx-content-research": {
-          "label": "Industry Research",
-          "description": "Industry trends and competitor analysis report",
-          "prompt": "Create an industry research and analysis report PPT covering the following sections:\n\n1. Research background and objectives\n2. Overall industry development status and market size\n3. Main competitor comparison (features, pricing, user reputation)\n4. Target user persona and core needs insights\n5. Industry trends and opportunities summary\n6. Actionable strategy recommendations\n\nStyle requirements: Data-driven, rich in charts, well-reasoned viewpoints, suitable for internal team sharing and discussion."
+        "docx-meeting-minutes": {
+          "label": "Meeting Minutes",
+          "description": "Standardized meeting record document",
+          "prompt": "Please help me generate a meeting minutes Word document including:\n\n1. Meeting basic info (time, venue, attendees)\n2. Meeting topics and discussion points\n3. Key decisions and conclusions\n4. Action items (owner, deadline)\n5. Next meeting arrangements\n\nStyle: Formal and structured, easy to archive and follow up."
         },
-        "pptx-education": {
-          "label": "Educational Presentation",
-          "description": "Classroom teaching slides and knowledge explanation",
-          "prompt": "Create a popular science teaching courseware about \"Solar System and Planetary Exploration\" suitable for middle school classroom use, including:\n\n1. Overview of the Solar System\n2. Comparison of basic characteristics of the eight planets (size, distance, temperature, etc.)\n3. Earth's uniqueness - why it is suitable for life\n4. Important milestones in human space exploration\n5. Classroom interactive Q&A session (design 3-4 thinking questions)\n6. Extended reading recommendations\n\nStyle requirements: Vivid and lively, bright colors, content from shallow to deep, stimulating students' curiosity and desire to explore."
+        "docx-project-proposal": {
+          "label": "Project Proposal",
+          "description": "Project initiation or implementation plan document",
+          "prompt": "Please help me generate a project proposal Word document including:\n\n1. Project background and objectives\n2. Project scope and content\n3. Implementation plan and milestones\n4. Resource requirements and budget estimate\n5. Risk analysis and mitigation measures\n6. Expected outcomes and benefits\n\nStyle: Logical, detailed, suitable for approval submission."
         },
-        "pptx-ai-intro": {
-          "label": "Introduction to AI",
-          "description": "Popular science presentation for understanding AI basics",
-          "prompt": "Create a popular science PPT introducing artificial intelligence for beginners, including:\n\n1. What is artificial intelligence - explain with everyday examples\n2. Brief history of AI development (from Turing Test to large language models)\n3. Common AI application scenarios (voice assistants, recommendation systems, autonomous driving, etc.)\n4. Basic principles of machine learning (explained with intuitive analogies)\n5. How large models and ChatGPT work\n6. What AI can and cannot do\n7. How ordinary people can start using AI tools to improve efficiency\n\nStyle requirements: Easy to understand, use diagrams and analogies, avoid technical jargon, make it understandable even for those with no technical background."
+        "docx-summary": {
+          "label": "Report Document",
+          "description": "Work report or situation summary document",
+          "prompt": "Please help me generate a work report Word document including:\n\n1. Work overview\n2. Main work content and progress\n3. Achievements\n4. Issues and suggestions\n5. Next steps\n\nStyle: Concise, key points highlighted, suitable for reporting."
         }
       }
     },
@@ -174,31 +149,6 @@
           "label": "Knowledge Explanation",
           "description": "Explain complex knowledge in simple language",
           "prompt": "Please explain the concept of \"photosynthesis\" in easy-to-understand language:\n\n1. Summarize what photosynthesis is in one sentence\n2. Explain the principle with everyday life analogies\n3. Draw a simple process of photosynthesis (text-based flowchart)\n4. Explain the importance of photosynthesis for Earth and humanity\n5. Propose 3 thinking questions to help me deepen my understanding"
-        }
-      }
-    },
-    "website": {
-      "label": "Create Website",
-      "prompts": {
-        "web-resume": {
-          "label": "Personal Resume",
-          "description": "Online resume and portfolio page",
-          "prompt": "Help me create a beautiful online personal resume page.\n\nBasic information:\n- Name: John Smith\n- Position: Product Manager (5 years experience)\n- Contact: Email, phone, WeChat QR code placeholder\n\nPage content:\n- Personal introduction: A brief self-introduction highlighting core strengths\n- Work experience: 3 work experiences, including company name, position, time, main achievements\n- Professional skills: Display product design, data analysis, project management and other skills in progress bar format\n- Project cases: Display 3 representative project cards with project name and brief description\n- Educational background and certificates\n\nDesign style:\nClean and professional, left-right column layout, dark sidebar with white main content area. Suitable for sharing directly with interviewers or partners."
-        },
-        "web-store": {
-          "label": "Store Homepage",
-          "description": "Small shop or studio showcase page",
-          "prompt": "Help me create a showcase webpage for a bakery studio called \"Wheat Field Bakery\".\n\nPage content:\n- Hero image: Studio name, a slogan \"Baking with heart, warming every day\", \"View Menu\" button\n- Signature products: Display 6 popular product cards (including image placeholder, name, price, brief description)\n- About us: Studio story, founder philosophy, with a store environment image placeholder\n- Customer reviews: 3 user reviews with avatars and star ratings\n- Contact and address: Business hours, address, phone, embedded map placeholder area\n\nDesign style:\nWarm and artistic, cream and brown as main colors, rounded cards, handwritten style title fonts. Overall atmosphere warm and friendly."
-        },
-        "web-event": {
-          "label": "Event Invitation",
-          "description": "Online invitation page for parties, weddings or events",
-          "prompt": "Help me create an online invitation webpage for a birthday party.\n\nEvent information:\n- Theme: \"Leo's 30th Birthday Party\"\n- Time: Saturday, August 15, 2025, 7:00 PM\n- Location: Starlight Garden Restaurant, 3rd Floor Terrace\n\nPage content:\n- Opening animation: Title fade-in, colorful confetti falling effect\n- Invitation message: A warm invitation text\n- Event schedule: Timeline showing party flow (check-in, dinner, games, cake, free socializing)\n- Dress code: Business casual, color reference image placeholder\n- Transportation guide: Address information and parking tips\n- RSVP confirmation: \"I will attend\" and \"Regrettably cannot attend\" two buttons\n\nDesign style:\nRomantic and lively, dark blue starry background, gold accent text, full of celebration atmosphere. Page should be mobile-friendly."
-        },
-        "web-survey": {
-          "label": "Survey Questionnaire",
-          "description": "Online form and questionnaire collection page",
-          "prompt": "Help me create a customer satisfaction survey questionnaire webpage.\n\nQuestionnaire title: \"Your Feedback is Important to Us\"\n\nQuestionnaire content:\n- Basic information: Name (optional), Contact (optional)\n- Single choice: Overall satisfaction (Very satisfied/Satisfied/Neutral/Dissatisfied/Very dissatisfied)\n- Single choice: Would you recommend to friends (1-10 rating slider)\n- Multiple choice: What aspects do you value most (Product quality/Service attitude/Response speed/Value for money/After-sales support)\n- Single choice: Usage frequency (Daily/Weekly/Monthly/Occasionally)\n- Text question: Your suggestions or opinions (large text box)\n- Submit button, show thank you page after submission\n\nDesign style:\nFresh and simple, white background, blue-green main color, sufficient spacing between questions, with progress bar showing completion. Suitable for mobile operation."
         }
       }
     }
