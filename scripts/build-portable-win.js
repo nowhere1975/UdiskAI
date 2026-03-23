@@ -25,8 +25,6 @@ process.env.LOBSTERAI_PORTABLE_BUILD = '1';
 const ROOT = path.resolve(__dirname, '..');
 const RELEASE_DIR = path.join(ROOT, 'release');
 const UNPACKED_DIR = path.join(RELEASE_DIR, 'win-unpacked');
-const BAT_SRC = path.join(__dirname, 'portable-assets', '启动.bat');
-const BAT_DST = path.join(UNPACKED_DIR, '启动.bat');
 const DATA_DIR = path.join(UNPACKED_DIR, 'data');
 const ZIP_NAME = 'AI助手-portable-win.zip';
 const ZIP_PATH = path.join(RELEASE_DIR, ZIP_NAME);
@@ -84,13 +82,8 @@ if (fs.existsSync(SKILLS_SRC)) {
   console.warn('WARNING: SKILLs source not found at', SKILLS_SRC);
 }
 
-// ── 2. 启动.bat ──────────────────────────────────────────────────────────────
-console.log('\n=== Step 2: Write 启动.bat ===');
-fs.copyFileSync(BAT_SRC, BAT_DST);
-console.log(`Written: ${BAT_DST}`);
-
-// ── 3. data/ directory ───────────────────────────────────────────────────────
-console.log('\n=== Step 3: Create data/ directory ===');
+// ── 2. data/ directory ───────────────────────────────────────────────────────
+console.log('\n=== Step 2: Create data/ directory ===');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 // .portable marker: app detects portable mode by its presence (more reliable than env var)
 fs.writeFileSync(path.join(DATA_DIR, '.portable'), '');
@@ -98,7 +91,7 @@ fs.writeFileSync(path.join(DATA_DIR, '.portable'), '');
 fs.writeFileSync(path.join(DATA_DIR, '.gitkeep'), '');
 console.log(`Created: ${DATA_DIR}`);
 
-// ── 4. Zip via PowerShell ────────────────────────────────────────────────────
+// ── 3. Zip via PowerShell ────────────────────────────────────────────────────
 console.log(`\n=== Step 4: Compress to ${ZIP_NAME} ===`);
 
 // Remove existing zip if present
