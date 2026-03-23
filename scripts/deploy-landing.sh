@@ -145,8 +145,9 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
     .feature-icon {
       width: 48px; height: 48px; background: var(--indigo-xlight);
       border-radius: 12px; display: flex; align-items: center;
-      justify-content: center; font-size: 1.5rem; margin-bottom: 18px;
+      justify-content: center; margin-bottom: 18px;
     }
+    .feature-icon svg { width: 22px; height: 22px; stroke: var(--indigo); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
     .feature-name { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
     .feature-desc { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.65; }
 
@@ -257,32 +258,32 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
   </div>
   <div class="features-grid">
     <div class="feature-card">
-      <div class="feature-icon">⚡</div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
       <div class="feature-name">解压即用</div>
       <p class="feature-desc">无需安装，不写注册表。解压后直接双击 UdiskAI.exe 即可启动，零配置上手。</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">💾</div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" y1="16" x2="6.01" y2="16"/><line x1="10" y1="16" x2="10.01" y2="16"/></svg></div>
       <div class="feature-name">随身携带</div>
       <p class="feature-desc">放在 U 盘或移动硬盘，插入任意 Windows 电脑即可使用，数据全部存于本地。</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">🗂️</div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg></div>
       <div class="feature-name">办公技能预置</div>
       <p class="feature-desc">内置 Word、Excel、PPT、PDF 等 10+ 办公技能，覆盖日常文档处理需求。</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">🧠</div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></div>
       <div class="feature-name">持久记忆</div>
       <p class="feature-desc">自动从对话中学习你的偏好与习惯，越用越懂你，提升每次交互效率。</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">🔒</div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg></div>
       <div class="feature-name">数据本地存储</div>
       <p class="feature-desc">聊天记录与配置全部保存在本地，不上传任何数据，隐私完全掌握在自己手中。</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">🪄</div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg></div>
       <div class="feature-name">Claude 驱动</div>
       <p class="feature-desc">基于 Anthropic Claude 大模型，接入你自己的 API Key，性能与官方体验一致。</p>
     </div>
