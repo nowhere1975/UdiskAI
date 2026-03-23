@@ -200,15 +200,35 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
       box-shadow: 0 8px 16px rgba(0,0,0,0.06), 0 32px 80px rgba(99,102,241,0.12), 0 0 0 1px rgba(0,0,0,0.06);
     }
     .preview-bar {
-      background: #f1f3f5;
-      padding: 10px 16px;
+      background: #f3f3f3;
+      padding: 0 0 0 12px;
+      height: 32px;
       display: flex;
       align-items: center;
-      gap: 8px;
-      border-bottom: 1px solid #e5e7eb;
+      justify-content: space-between;
+      border-bottom: 1px solid #e0e0e0;
+      user-select: none;
     }
-    .preview-dot {
-      width: 12px; height: 12px; border-radius: 50%;
+    .preview-bar-title {
+      font-size: 12px;
+      color: #333;
+      font-family: "Segoe UI", sans-serif;
+    }
+    .preview-bar-btns {
+      display: flex;
+      height: 100%;
+    }
+    .preview-bar-btn {
+      width: 46px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #444;
+    }
+    .preview-bar-btn.close {
+      color: #444;
     }
     .preview-frame img {
       display: block;
@@ -266,9 +286,12 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
   <div class="preview-inner">
     <div class="preview-frame">
       <div class="preview-bar">
-        <span class="preview-dot" style="background:#ff5f57"></span>
-        <span class="preview-dot" style="background:#febc2e"></span>
-        <span class="preview-dot" style="background:#28c840"></span>
+        <span class="preview-bar-title">UdiskAI</span>
+        <div class="preview-bar-btns">
+          <span class="preview-bar-btn">&#x2212;</span>
+          <span class="preview-bar-btn">&#x25A1;</span>
+          <span class="preview-bar-btn close">&#x2715;</span>
+        </div>
       </div>
       <img src="/screenshot.png" alt="UdiskAI 界面截图" />
     </div>
