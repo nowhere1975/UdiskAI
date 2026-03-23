@@ -119,6 +119,39 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
     }
     .hero-screenshot img { display: block; width: 100%; height: auto; }
 
+    /* CASES */
+    .cases { padding: 88px 24px; background: var(--bg-gray); }
+    .cases-grid {
+      max-width: 1120px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px;
+    }
+    .case-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+      transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+    }
+    .case-card:hover {
+      box-shadow: 0 8px 32px rgba(99,102,241,0.1);
+      border-color: #c7d2fe; transform: translateY(-3px);
+    }
+    .case-img { display: block; width: 100%; height: auto; border-bottom: 1px solid var(--border); }
+    .case-body { padding: 20px 22px 24px; }
+    .case-tag {
+      display: inline-block; padding: 3px 10px;
+      background: var(--indigo-light); color: var(--indigo);
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase; border-radius: 100px; margin-bottom: 10px;
+    }
+    .case-title { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .case-desc { font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6; }
+    .case-prompt {
+      margin-top: 12px; padding: 10px 14px;
+      background: var(--bg-gray); border-radius: 8px;
+      font-size: 0.82rem; color: var(--text-secondary);
+      border-left: 3px solid #c7d2fe; line-height: 1.55;
+    }
+    .case-prompt::before { content: '💬 '; }
+
     /* FEATURES */
     .features { padding: 88px 24px; background: var(--white); }
     .section-header { text-align: center; margin-bottom: 56px; }
@@ -195,6 +228,7 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
       .hero-screenshot { max-width: 560px; margin: 0 auto; }
     }
     @media (max-width: 768px) {
+      .cases-grid { grid-template-columns: 1fr; max-width: 480px; }
       .features-grid { grid-template-columns: 1fr; max-width: 480px; }
       .steps-row { grid-template-columns: 1fr; gap: 40px; }
       .steps-row::before { display: none; }
@@ -215,6 +249,7 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
       UdiskAI
     </a>
     <div class="nav-links">
+      <a href="#cases">案例</a>
       <a href="#features">功能</a>
       <a href="#howto">使用说明</a>
       <a class="nav-github" href="https://github.com/nowhere1975/UdiskAI" target="_blank" rel="noopener">
@@ -247,6 +282,42 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
     </div>
     <div class="hero-screenshot">
       <img src="/screenshot.png" alt="UdiskAI 界面截图" />
+    </div>
+  </div>
+</section>
+
+<section class="cases" id="cases">
+  <div class="section-header">
+    <div class="section-label">使用案例</div>
+    <h2 class="section-title">看看别人怎么用 UdiskAI</h2>
+  </div>
+  <div class="cases-grid">
+    <div class="case-card">
+      <img class="case-img" src="/case-search-pdf.png" alt="搜索生成报告" />
+      <div class="case-body">
+        <span class="case-tag">搜索 · PDF</span>
+        <div class="case-title">一句话生成调研报告</div>
+        <p class="case-desc">让 AI 自动搜索多个信源，整合分析，直接输出结构化 PDF 报告。</p>
+        <div class="case-prompt">请搜索关于美伊战争的新闻和动态，总结一份态势报告，生成 PDF</div>
+      </div>
+    </div>
+    <div class="case-card">
+      <img class="case-img" src="/case-excel.png" alt="Excel数据分析" />
+      <div class="case-body">
+        <span class="case-tag">Excel · 数据分析</span>
+        <div class="case-title">表格数据交给 AI 算</div>
+        <p class="case-desc">上传销售表格，用自然语言提需求，自动完成统计汇总并生成新文件。</p>
+        <div class="case-prompt">我有一个销售表格，需要你帮我做统计工作，汇总各产品销量</div>
+      </div>
+    </div>
+    <div class="case-card">
+      <img class="case-img" src="/case-word.png" alt="生成Word文档" />
+      <div class="case-body">
+        <span class="case-tag">Word · 文档生成</span>
+        <div class="case-title">读取文件自动写报告</div>
+        <p class="case-desc">指定工作文件夹，AI 自动读取材料，生成完整的季度工作总结 Word 文档。</p>
+        <div class="case-prompt">我的工作文件在 C 盘工作文件夹，按里面的内容帮我写季度工作总结</div>
+      </div>
     </div>
   </div>
 </section>
@@ -343,8 +414,11 @@ dl() {
     curl -sL "$url" -o "$dest" 2>/dev/null || echo "    下载失败：$url，请手动上传到 $dest"
   fi
 }
-dl "$BASE_URL/public/logo.png"                        "$WEBROOT/logo.png"
-dl "$BASE_URL/scripts/web-assets/screenshot.png"      "$WEBROOT/screenshot.png"
+dl "$BASE_URL/public/logo.png"                             "$WEBROOT/logo.png"
+dl "$BASE_URL/scripts/web-assets/screenshot.png"           "$WEBROOT/screenshot.png"
+dl "$BASE_URL/scripts/web-assets/case-search-pdf.png"      "$WEBROOT/case-search-pdf.png"
+dl "$BASE_URL/scripts/web-assets/case-excel.png"           "$WEBROOT/case-excel.png"
+dl "$BASE_URL/scripts/web-assets/case-word.png"            "$WEBROOT/case-word.png"
 
 echo "===> [5/6] 配置 nginx..."
 cat > /etc/nginx/sites-available/udiskai << NGINXEOF
