@@ -63,7 +63,7 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
     /* HERO */
     .hero {
       position: relative; overflow: hidden;
-      padding: 100px 24px 96px; text-align: center; background: var(--white);
+      padding: 72px 24px 80px; background: var(--white);
     }
     .hero::before {
       content: ''; position: absolute; inset: 0;
@@ -71,33 +71,36 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
       background-size: 28px 28px; opacity: 0.45; pointer-events: none;
     }
     .hero::after {
-      content: ''; position: absolute; top: -80px; left: 50%; transform: translateX(-50%);
+      content: ''; position: absolute; top: -80px; left: 30%;
       width: 700px; height: 400px;
       background: radial-gradient(ellipse at center, rgba(99,102,241,0.12) 0%, transparent 70%);
       pointer-events: none;
     }
-    .hero-content {
-      position: relative; z-index: 1; max-width: 680px; margin: 0 auto;
+    .hero-inner {
+      position: relative; z-index: 1;
+      max-width: 1120px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center;
       animation: fadeUp 0.75s ease both;
     }
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(24px); }
       to   { opacity: 1; transform: translateY(0); }
     }
+    .hero-text { display: flex; flex-direction: column; align-items: flex-start; }
     .hero-logo {
-      width: 80px; height: 80px; border-radius: 20px; object-fit: contain;
-      margin-bottom: 28px; box-shadow: 0 8px 32px rgba(99,102,241,0.18);
+      width: 72px; height: 72px; border-radius: 18px; object-fit: contain;
+      margin-bottom: 24px; box-shadow: 0 8px 32px rgba(99,102,241,0.18);
     }
     .hero-title {
-      font-size: clamp(2.6rem, 6vw, 4rem); font-weight: 800;
-      letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 20px;
+      font-size: clamp(2.2rem, 4vw, 3.4rem); font-weight: 800;
+      letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px;
     }
     .hero-title span {
       background: linear-gradient(135deg, var(--indigo) 0%, #818cf8 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
-    .hero-tagline { font-size: 1.25rem; color: var(--text-secondary); margin-bottom: 40px; }
-    .hero-cta { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .hero-tagline { font-size: 1.15rem; color: var(--text-secondary); margin-bottom: 36px; line-height: 1.6; }
+    .hero-cta { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
     .btn-download {
       display: inline-flex; align-items: center; gap: 10px;
       padding: 14px 36px; background: var(--indigo); color: var(--white);
@@ -110,6 +113,11 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
       box-shadow: 0 8px 28px rgba(99,102,241,0.45);
     }
     .hero-note { font-size: 0.82rem; color: var(--text-muted); letter-spacing: 0.02em; }
+    .hero-screenshot {
+      border-radius: 14px; overflow: hidden;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.06), 0 32px 80px rgba(99,102,241,0.14), 0 0 0 1px rgba(0,0,0,0.06);
+    }
+    .hero-screenshot img { display: block; width: 100%; height: auto; }
 
     /* FEATURES */
     .features { padding: 88px 24px; background: var(--white); }
@@ -179,65 +187,20 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
     .footer-copy { font-size: 0.78rem; color: #475569; margin-top: 4px; }
 
     /* RESPONSIVE */
+    @media (max-width: 900px) {
+      .hero-inner { grid-template-columns: 1fr; gap: 40px; }
+      .hero-text { align-items: center; text-align: center; }
+      .hero-cta { align-items: center; }
+      .hero-screenshot { max-width: 560px; margin: 0 auto; }
+    }
     @media (max-width: 768px) {
       .features-grid { grid-template-columns: 1fr; max-width: 480px; }
       .steps-row { grid-template-columns: 1fr; gap: 40px; }
       .steps-row::before { display: none; }
       .step { padding: 0; }
     }
-    /* SCREENSHOT */
-    .preview {
-      padding: 0 24px 88px;
-      background: var(--white);
-    }
-    .preview-inner {
-      max-width: 960px;
-      margin: 0 auto;
-    }
-    .preview-frame {
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.06), 0 32px 80px rgba(99,102,241,0.12), 0 0 0 1px rgba(0,0,0,0.06);
-    }
-    .preview-bar {
-      background: #f3f3f3;
-      padding: 0 0 0 12px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid #e0e0e0;
-      user-select: none;
-    }
-    .preview-bar-title {
-      font-size: 12px;
-      color: #333;
-      font-family: "Segoe UI", sans-serif;
-    }
-    .preview-bar-btns {
-      display: flex;
-      height: 100%;
-    }
-    .preview-bar-btn {
-      width: 46px;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      color: #444;
-    }
-    .preview-bar-btn.close {
-      color: #444;
-    }
-    .preview-frame img {
-      display: block;
-      width: 100%;
-      height: auto;
-    }
-
     @media (max-width: 480px) {
-      .hero { padding: 72px 20px; }
+      .hero { padding: 56px 20px 64px; }
       .nav-inner { padding: 0 16px; }
     }
   </style>
@@ -264,35 +227,24 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
 </nav>
 
 <section class="hero">
-  <div class="hero-content">
-    <img class="hero-logo" src="/logo.png" alt="UdiskAI" />
-    <h1 class="hero-title"><span>UdiskAI</span></h1>
-    <p class="hero-tagline">你的随身 AI 办公助手</p>
-    <div class="hero-cta">
-      <a class="btn-download" href="https://www.123865.com/s/YdozTd-CXkq3" target="_blank" rel="noopener">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-        免费下载
-      </a>
-      <span class="hero-note">Windows 便携版 · 免费使用</span>
-    </div>
-  </div>
-</section>
-
-<section class="preview">
-  <div class="preview-inner">
-    <div class="preview-frame">
-      <div class="preview-bar">
-        <span class="preview-bar-title">UdiskAI</span>
-        <div class="preview-bar-btns">
-          <span class="preview-bar-btn">&#x2212;</span>
-          <span class="preview-bar-btn">&#x25A1;</span>
-          <span class="preview-bar-btn close">&#x2715;</span>
-        </div>
+  <div class="hero-inner">
+    <div class="hero-text">
+      <img class="hero-logo" src="/logo.png" alt="UdiskAI" />
+      <h1 class="hero-title"><span>UdiskAI</span></h1>
+      <p class="hero-tagline">你的随身 AI 办公助手</p>
+      <div class="hero-cta">
+        <a class="btn-download" href="https://www.123865.com/s/YdozTd-CXkq3" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          免费下载
+        </a>
+        <span class="hero-note">Windows 便携版 · 免费使用</span>
       </div>
+    </div>
+    <div class="hero-screenshot">
       <img src="/screenshot.png" alt="UdiskAI 界面截图" />
     </div>
   </div>
