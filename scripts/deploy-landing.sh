@@ -321,7 +321,7 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
       <h1 class="hero-title"><span>UdiskAI</span></h1>
       <p class="hero-tagline">你的随身 AI 办公助手</p>
       <div class="hero-cta">
-        <a class="btn-download" href="https://www.123865.com/s/YdozTd-CXkq3" target="_blank" rel="noopener">
+        <a class="btn-download" href="https://www.123684.com/s/YdozTd-g2kq3" target="_blank" rel="noopener">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/>
@@ -538,7 +538,7 @@ cat > "$WEBROOT/index.html" << 'HTMLEOF'
       UdiskAI
     </div>
     <div class="footer-links">
-      <a href="https://www.123865.com/s/YdozTd-CXkq3" target="_blank" rel="noopener">免费下载</a>
+      <a href="https://www.123684.com/s/YdozTd-g2kq3" target="_blank" rel="noopener">免费下载</a>
       <a href="https://github.com/nowhere1975/UdiskAI" target="_blank" rel="noopener">GitHub</a>
       <a href="mailto:UdiskAI@163.com">UdiskAI@163.com</a>
     </div>
