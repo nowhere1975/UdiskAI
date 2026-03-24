@@ -60,6 +60,46 @@
           "id": "edu-knowledge-explain"
         }
       ]
+    },
+    {
+      "id": "moments-card",
+      "icon": "DevicePhoneMobileIcon",
+      "color": "#06B6D4",
+      "skillMapping": "moments-card",
+      "prompts": [
+        {
+          "id": "moments-long"
+        },
+        {
+          "id": "moments-infograph"
+        },
+        {
+          "id": "moments-multi"
+        },
+        {
+          "id": "moments-sketchnote"
+        }
+      ]
+    },
+    {
+      "id": "pptx",
+      "icon": "PresentationChartBarIcon",
+      "color": "#F59E0B",
+      "skillMapping": "pptx",
+      "prompts": [
+        {
+          "id": "ppt-work-report"
+        },
+        {
+          "id": "ppt-project-intro"
+        },
+        {
+          "id": "ppt-training"
+        },
+        {
+          "id": "ppt-product-launch"
+        }
+      ]
     }
   ]
 }

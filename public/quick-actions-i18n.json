@@ -50,6 +50,56 @@
         }
       }
     },
+    "moments-card": {
+      "label": "发朋友圈",
+      "prompts": {
+        "moments-long": {
+          "label": "长图阅读卡",
+          "description": "生成适合朋友圈的长图文字卡片",
+          "prompt": "请把以下内容做成一张朋友圈长图卡片（-l 模式），署名"我"，输出到 ~/Downloads/：\n\n【在此粘贴你的内容】"
+        },
+        "moments-infograph": {
+          "label": "信息图",
+          "description": "数据或要点驱动的视觉信息图",
+          "prompt": "请把以下内容做成一张朋友圈信息图（-i 模式），署名"我"，输出到 ~/Downloads/：\n\n【在此粘贴你的内容】"
+        },
+        "moments-multi": {
+          "label": "九宫格多图",
+          "description": "自动切分为多张适合朋友圈九宫格的卡片",
+          "prompt": "请把以下内容切分成多张朋友圈卡片（-m 模式，每张 1080×1440），署名"我"，输出到 ~/Downloads/：\n\n【在此粘贴你的内容】"
+        },
+        "moments-sketchnote": {
+          "label": "手绘视觉笔记",
+          "description": "手绘风格 sketchnote 卡片",
+          "prompt": "请把以下内容做成一张手绘风格的朋友圈视觉笔记（-v 模式），署名"我"，输出到 ~/Downloads/：\n\n【在此粘贴你的内容】"
+        }
+      }
+    },
+    "pptx": {
+      "label": "PPT 制作",
+      "prompts": {
+        "ppt-work-report": {
+          "label": "工作汇报",
+          "description": "季度或年度工作汇报演示文稿",
+          "prompt": "请帮我制作一份工作汇报 PPT，要求：\n\n1. 封面页（标题 + 汇报人 + 日期）\n2. 目录页\n3. 本期核心成果（3-5 条，配数据）\n4. 重点项目进展\n5. 问题与风险\n6. 下期计划\n7. 结尾页\n\n风格：简洁商务，蓝色系配色，每页不超过 5 行文字。"
+        },
+        "ppt-project-intro": {
+          "label": "项目介绍",
+          "description": "项目或产品介绍演示文稿",
+          "prompt": "请帮我制作一份项目介绍 PPT，包含：\n\n1. 封面（项目名称 + 副标题）\n2. 项目背景与痛点\n3. 解决方案与核心功能\n4. 技术架构或实现路径\n5. 项目进度与里程碑\n6. 团队与资源\n7. 预期成果\n\n风格：专业现代，图文并茂，适合向领导或客户汇报。"
+        },
+        "ppt-training": {
+          "label": "培训课件",
+          "description": "员工培训或知识分享课件",
+          "prompt": "请帮我制作一份培训课件 PPT，包含：\n\n1. 封面（课程名称 + 讲师 + 日期）\n2. 课程目标（学完能做什么）\n3. 核心知识点（分 3-4 个模块）\n4. 案例分析或实操演示\n5. 常见问题与解答\n6. 课程小结与行动建议\n\n风格：清晰易读，重点突出，适合投影展示。"
+        },
+        "ppt-product-launch": {
+          "label": "产品发布",
+          "description": "新产品或新功能发布演示文稿",
+          "prompt": "请帮我制作一份产品发布 PPT，包含：\n\n1. 封面（产品名称 + 发布日期）\n2. 市场背景与用户痛点\n3. 产品亮点（3 个核心卖点）\n4. 功能演示或截图展示\n5. 与竞品对比优势\n6. 定价与上线计划\n7. 号召行动页\n\n风格：视觉冲击力强，简洁大气，适合对外发布。"
+        }
+      }
+    },
     "education": {
       "label": "教育学习",
       "prompts": {
@@ -124,6 +174,56 @@
           "label": "Merge Multiple Tables",
           "description": "Merge multiple Excel files and standardize format",
           "prompt": "I have multiple Excel files that need to be merged and organized. Please help me:\n\n1. Merge data from multiple files into one table\n2. Standardize column names and data formats\n3. Remove duplicate data\n4. Generate a merged Excel file with data source markers"
+        }
+      }
+    },
+    "moments-card": {
+      "label": "Moments Card",
+      "prompts": {
+        "moments-long": {
+          "label": "Long Card",
+          "description": "Generate a long-form reading card for Moments",
+          "prompt": "Please turn the following content into a WeChat Moments long card (-l mode), signed \"Me\", output to ~/Downloads/:\n\n[Paste your content here]"
+        },
+        "moments-infograph": {
+          "label": "Infographic",
+          "description": "Data or key-point driven visual infographic",
+          "prompt": "Please turn the following content into a WeChat Moments infographic (-i mode), signed \"Me\", output to ~/Downloads/:\n\n[Paste your content here]"
+        },
+        "moments-multi": {
+          "label": "Multi-card Grid",
+          "description": "Auto-split into multiple cards for Moments 9-grid",
+          "prompt": "Please split the following content into multiple Moments cards (-m mode, 1080×1440 each), signed \"Me\", output to ~/Downloads/:\n\n[Paste your content here]"
+        },
+        "moments-sketchnote": {
+          "label": "Sketchnote",
+          "description": "Hand-drawn style sketchnote card",
+          "prompt": "Please turn the following content into a hand-drawn style Moments sketchnote (-v mode), signed \"Me\", output to ~/Downloads/:\n\n[Paste your content here]"
+        }
+      }
+    },
+    "pptx": {
+      "label": "Make PPT",
+      "prompts": {
+        "ppt-work-report": {
+          "label": "Work Report",
+          "description": "Quarterly or annual work report presentation",
+          "prompt": "Please create a work report PPT with:\n\n1. Cover page (title + presenter + date)\n2. Table of contents\n3. Key achievements this period (3-5 items with data)\n4. Key project progress\n5. Issues and risks\n6. Next period plan\n7. Closing page\n\nStyle: Clean business look, blue color scheme, max 5 lines per slide."
+        },
+        "ppt-project-intro": {
+          "label": "Project Introduction",
+          "description": "Project or product introduction presentation",
+          "prompt": "Please create a project introduction PPT including:\n\n1. Cover (project name + subtitle)\n2. Background and pain points\n3. Solution and core features\n4. Technical architecture or implementation path\n5. Project timeline and milestones\n6. Team and resources\n7. Expected outcomes\n\nStyle: Professional and modern, visual, suitable for presenting to leadership or clients."
+        },
+        "ppt-training": {
+          "label": "Training Slides",
+          "description": "Employee training or knowledge sharing slides",
+          "prompt": "Please create a training slides PPT including:\n\n1. Cover (course name + instructor + date)\n2. Learning objectives\n3. Core knowledge (3-4 modules)\n4. Case studies or hands-on demos\n5. FAQ\n6. Summary and action recommendations\n\nStyle: Clear and readable, key points highlighted, suitable for projection."
+        },
+        "ppt-product-launch": {
+          "label": "Product Launch",
+          "description": "New product or feature launch presentation",
+          "prompt": "Please create a product launch PPT including:\n\n1. Cover (product name + launch date)\n2. Market background and user pain points\n3. Product highlights (3 core selling points)\n4. Feature demo or screenshots\n5. Competitive advantages\n6. Pricing and launch plan\n7. Call-to-action page\n\nStyle: Visually impactful, clean and bold, suitable for public launch."
         }
       }
     },
