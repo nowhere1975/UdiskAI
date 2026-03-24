@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.loli.net/css2?family=Permanent+Marker&family=Kalam:wght@400;700&family=DM+Sans:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #FAFBFC;
+    --board: #F2F3F5;
+    --ink: #1A1A1A;
+    --ink-light: #555;
+    --red: #D1495B;
+    --blue: #2B6CB0;
+    --green: #2D8659;
+    --orange: #D97706;
+    --marker-bg: rgba(255, 237, 74, 0.35);
+    --hand: 'Kalam', 'PingFang SC', 'Microsoft YaHei', cursive;
+    --marker: 'Permanent Marker', 'PingFang SC', 'Microsoft YaHei', cursive;
+    --sans: 'DM Sans', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+    --mono: 'SF Mono', 'Menlo', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; background: var(--bg); }
+
+  .board {
+    width: 1080px;
+    background: var(--board);
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  /* subtle whiteboard surface texture - fine crosshatch */
+  .board > .surface {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(90deg, rgba(0,0,0,0.012) 1px, transparent 1px),
+      linear-gradient(rgba(0,0,0,0.012) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* whiteboard frame edge */
+  .board::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 3px solid #E0E0E0;
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  .colophon {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 60px 32px;
+    border-top: 2px solid rgba(0,0,0,0.06);
+  }
+
+  .colophon .who {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .colophon .who .avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: var(--blue);
+    opacity: 0.3;
+    flex-shrink: 0;
+  }
+
+  .colophon .who span {
+    font: 400 24px/1 var(--sans);
+    color: var(--ink-light);
+  }
+
+  .colophon .arxiv {
+    font: 400 22px/1 var(--mono);
+    color: var(--ink-light);
+  }
+
+  {{CUSTOM_CSS}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <marker id="arrow-r" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="var(--red)" />
+    </marker>
+    <marker id="arrow-b" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="var(--blue)" />
+    </marker>
+    <marker id="arrow-k" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="var(--ink)" />
+    </marker>
+    <marker id="arrow-g" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="var(--green)" />
+    </marker>
+  </defs>
+</svg>
+<div class="board">
+  <div class="surface"></div>
+  {{CONTENT_HTML}}
+  <div class="colophon">
+    <div class="who">
+      <div class="avatar"></div>
+      <span>{{SOURCE}}</span>
+    </div>
+    {{ARXIV_LINE}}
+  </div>
+</div>
+</body>
+</html>

@@ -22,6 +22,7 @@
     "music-search": { "order": 223, "enabled": true },
     "technology-news-search": { "order": 224, "enabled": false },
     "skill-vetter": { "order": 299, "enabled": true },
+    "moments-card": { "order": 215, "enabled": true },
     "skill-creator": { "order": 300, "enabled": true }
   }
 }
