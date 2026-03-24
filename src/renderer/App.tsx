@@ -11,6 +11,7 @@ import { McpView } from './components/mcp';
 import CoworkPermissionModal from './components/cowork/CoworkPermissionModal';
 import CoworkQuestionWizard from './components/cowork/CoworkQuestionWizard';
 import { configService } from './services/config';
+import { cloudService } from './services/cloudService';
 import { apiService } from './services/api';
 import { themeService } from './services/theme';
 import { coworkService } from './services/cowork';
@@ -100,6 +101,9 @@ const App: React.FC = () => {
           baseUrl: config.api.baseUrl,
         };
         apiService.setConfig(apiConfig);
+
+        // 内置额度云模式初始化（若已启用则自动注册/同步余额）
+        void cloudService.init();
 
         // 从 providers 配置中加载可用模型列表到 Redux
         const providerModels: { id: string; name: string; provider?: string; providerKey?: string; supportsImage?: boolean }[] = [];
