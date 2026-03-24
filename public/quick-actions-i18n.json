@@ -56,22 +56,22 @@
         "moments-long": {
           "label": "长图阅读卡",
           "description": "生成适合朋友圈的长图文字卡片",
-          "prompt": "请把以下内容做成一张朋友圈长图卡片（-l 模式），署名"我"，输出到 ~/Downloads/：\n\n【在此粘贴你的内容】"
+          "prompt": "请把以下内容做成一张朋友圈长图卡片（-l 模式），署名「我」，输出到 ~/Downloads/：\n\n【在此粘贴你的内容】"
         },
         "moments-infograph": {
           "label": "信息图",
           "description": "数据或要点驱动的视觉信息图",
-          "prompt": "请把以下内容做成一张朋友圈信息图（-i 模式），署名"我"，输出到 ~/Downloads/：\n\n【在此粘贴你的内容】"
+          "prompt": "请把以下内容做成一张朋友圈信息图（-i 模式），署名「我」，输出到 ~/Downloads/：\n\n【在此粘贴你的内容】"
         },
         "moments-multi": {
           "label": "九宫格多图",
           "description": "自动切分为多张适合朋友圈九宫格的卡片",
-          "prompt": "请把以下内容切分成多张朋友圈卡片（-m 模式，每张 1080×1440），署名"我"，输出到 ~/Downloads/：\n\n【在此粘贴你的内容】"
+          "prompt": "请把以下内容切分成多张朋友圈卡片（-m 模式，每张 1080×1440），署名「我」，输出到 ~/Downloads/：\n\n【在此粘贴你的内容】"
         },
         "moments-sketchnote": {
           "label": "手绘视觉笔记",
           "description": "手绘风格 sketchnote 卡片",
-          "prompt": "请把以下内容做成一张手绘风格的朋友圈视觉笔记（-v 模式），署名"我"，输出到 ~/Downloads/：\n\n【在此粘贴你的内容】"
+          "prompt": "请把以下内容做成一张手绘风格的朋友圈视觉笔记（-v 模式），署名「我」，输出到 ~/Downloads/：\n\n【在此粘贴你的内容】"
         }
       }
     },
