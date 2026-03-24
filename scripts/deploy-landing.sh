@@ -575,6 +575,20 @@ server {
     root $WEBROOT;
     index index.html;
 
+    # ── 公文生成器（反向代理到 cn-docx Express 服务）──────────────────
+    location /gendoc/ {
+        proxy_pass         http://127.0.0.1:3001/;
+        proxy_http_version 1.1;
+        proxy_set_header   Host               \$host;
+        proxy_set_header   X-Real-IP          \$remote_addr;
+        proxy_set_header   X-Forwarded-For    \$proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto  \$scheme;
+        proxy_buffering    off;
+        proxy_read_timeout 120s;
+        client_max_body_size 4m;
+    }
+
+    # ── 落地页静态资源 ─────────────────────────────────────────────────
     location / {
         try_files \$uri \$uri/ =404;
     }
@@ -604,5 +618,90 @@ certbot --nginx \
   --redirect
 
 echo ""
+echo "===> [额外] 部署公文生成器（gendoc）服务..."
+
+GENDOC_DIR="/opt/gendoc"
+GENDOC_ENV="$GENDOC_DIR/web/.env"
+
+# ── 安装 Node.js（若未安装）──────────────────────────────────────────
+if ! command -v node &>/dev/null; then
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  apt-get install -y nodejs
+fi
+
+# ── 克隆代码（首次）或更新（已存在）────────────────────────────────
+GENDOC_REPO="${GENDOC_REPO:-https://github.com/nowhere1975/cn-docx.git}"
+if [ -d "$GENDOC_DIR/.git" ]; then
+  git -C "$GENDOC_DIR" pull --ff-only
+else
+  git clone "$GENDOC_REPO" "$GENDOC_DIR"
+fi
+
+# ── 安装依赖 ─────────────────────────────────────────────────────────
+cd "$GENDOC_DIR/web" && npm install --production
+
+# ── 写入 model-config.json（DeepSeek 直连，key 通过环境变量传入）──
+if [ -n "$DEEPSEEK_API_KEY" ]; then
+  cat > "$GENDOC_DIR/web/model-config.json" << MODELEOF
+{
+  "providers": [
+    {
+      "id": "deepseek-default",
+      "name": "DeepSeek",
+      "baseURL": "https://api.deepseek.com/v1",
+      "apiKey": "$DEEPSEEK_API_KEY",
+      "model": "deepseek-chat",
+      "enabled": true,
+      "isDefault": true
+    }
+  ]
+}
+MODELEOF
+  echo "ℹ️  model-config.json 已写入 DeepSeek 配置"
+else
+  echo "⚠️  未设置 DEEPSEEK_API_KEY，跳过 model-config.json 写入，请手动配置"
+fi
+
+# ── 创建 .env（仅首次，避免覆盖已有配置）──────────────────────────
+if [ ! -f "$GENDOC_ENV" ]; then
+  cat > "$GENDOC_ENV" << ENVEOF
+PORT=3001
+BASE_PATH=/gendoc
+DAILY_BUDGET=2000
+TURNSTILE_SECRET=0x4AAAAAACvWrmELFj4TZS3hmNuDOpun09w
+TURNSTILE_SITEKEY=0x4AAAAAACvWrj9SUy6s6bj0
+DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+ENVEOF
+  echo "ℹ️  已创建 $GENDOC_ENV，请确认 DEEPSEEK_API_KEY 已填写"
+fi
+
+# ── 注册 systemd 服务 ─────────────────────────────────────────────
+cat > /etc/systemd/system/gendoc.service << SVCEOF
+[Unit]
+Description=cn-docx gendoc public service
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=$GENDOC_DIR/web
+EnvironmentFile=$GENDOC_ENV
+ExecStart=$(which node) server.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+SVCEOF
+
+systemctl daemon-reload
+systemctl enable gendoc
+systemctl restart gendoc
+
+echo ""
 echo "✅ 部署完成！"
-echo "   访问：https://$DOMAIN"
+echo "   落地页：https://$DOMAIN"
+echo "   公文生成器：https://$DOMAIN/gendoc/"
+echo ""
+echo "ℹ️  若需修改配置（如 DeepSeek API Key）："
+echo "   nano $GENDOC_ENV && systemctl restart gendoc"
