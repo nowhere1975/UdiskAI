@@ -17,25 +17,43 @@ async function main() {
     process.exit(1);
   }
 
-  // Use bundled Chromium if available (portable builds pre-install it here)
-  const localBrowsersPath = path.join(__dirname, '..', 'playwright-browsers');
-  if (fs.existsSync(localBrowsersPath)) {
-    process.env.PLAYWRIGHT_BROWSERS_PATH = localBrowsersPath;
-  }
-
   // Look for playwright in skill-local node_modules first, then global
   let chromium;
   const localPlaywright = path.join(__dirname, '..', 'node_modules', 'playwright');
   try {
     chromium = require(fs.existsSync(localPlaywright) ? localPlaywright : 'playwright').chromium;
   } catch {
-    console.error('[moments-card] Playwright not found.');
-    console.error('Run in skill directory: npm install');
-    console.error('Then: npx playwright install chromium');
+    console.error('[moments-card] Playwright not found. Run in skill directory: npm install');
     process.exit(1);
   }
 
-  const browser = await chromium.launch();
+  // Use bundled Chromium if pre-installed (legacy portable builds)
+  const localBrowsersPath = path.join(__dirname, '..', 'playwright-browsers');
+  if (fs.existsSync(localBrowsersPath)) {
+    process.env.PLAYWRIGHT_BROWSERS_PATH = localBrowsersPath;
+  }
+
+  // Try system browsers first (zero download), fall back to playwright-managed Chromium
+  let browser;
+  const systemChannels = ['msedge', 'chrome'];
+  for (const channel of systemChannels) {
+    try {
+      browser = await chromium.launch({ channel });
+      break;
+    } catch {
+      // channel not available, try next
+    }
+  }
+  if (!browser) {
+    // Fall back to playwright-managed Chromium (requires: npx playwright install chromium)
+    try {
+      browser = await chromium.launch();
+    } catch (e) {
+      console.error('[moments-card] No browser found. Install one of: Edge, Chrome, or run:');
+      console.error('  npx playwright install chromium  (in the moments-card skill directory)');
+      process.exit(1);
+    }
+  }
   const page = await browser.newPage();
   await page.setViewportSize({ width, height: fullpage ? 800 : height });
 

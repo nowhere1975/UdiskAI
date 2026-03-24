@@ -82,26 +82,20 @@ if (fs.existsSync(SKILLS_SRC)) {
   console.warn('WARNING: SKILLs source not found at', SKILLS_SRC);
 }
 
-// ── 1d. Pre-install moments-card Playwright + Chromium ───────────────────────
-// Installs into the unpacked skills dir so the portable package is self-contained.
-// PLAYWRIGHT_BROWSERS_PATH points inside the skill dir — capture.js auto-detects it.
-console.log('\n=== Step 1d: Pre-install moments-card Playwright + Chromium ===');
+// ── 1d. Pre-install moments-card npm dependencies ────────────────────────────
+// Only installs the playwright npm package (~5 MB). No Chromium download needed:
+// capture.js uses the system Edge (always present on Windows 10/11) at runtime.
+console.log('\n=== Step 1d: Install moments-card npm dependencies ===');
 const mcSkillDir = path.join(SKILLS_DST, 'moments-card');
 if (fs.existsSync(mcSkillDir)) {
-  const mcBrowsersDir = path.join(mcSkillDir, 'playwright-browsers');
   try {
     run('npm install --prefer-offline', { cwd: mcSkillDir });
-    run('npx playwright install chromium', {
-      cwd: mcSkillDir,
-      env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: mcBrowsersDir },
-    });
-    console.log('moments-card: Playwright + Chromium installed at', mcBrowsersDir);
+    console.log('moments-card: npm dependencies installed.');
   } catch (e) {
-    console.warn('WARNING: moments-card Playwright install failed:', e.message);
-    console.warn('Users will need to run: cd moments-card && npm install && npx playwright install chromium');
+    console.warn('WARNING: moments-card npm install failed:', e.message);
   }
 } else {
-  console.warn('WARNING: moments-card skill dir not found, skipping Playwright install.');
+  console.warn('WARNING: moments-card skill dir not found, skipping npm install.');
 }
 
 // ── 2. data/ directory ───────────────────────────────────────────────────────
