@@ -8,7 +8,7 @@ import { decryptSecret, encryptWithPassword, decryptWithPassword, EncryptedPaylo
 import { coworkService } from '../services/cowork';
 import { APP_ID, EXPORT_FORMAT_TYPE, EXPORT_PASSWORD } from '../constants/app';
 import ErrorMessage from './ErrorMessage';
-import { XMarkIcon, Cog6ToothIcon, SignalIcon, CheckCircleIcon, XCircleIcon, CubeIcon, EnvelopeIcon, InformationCircleIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, Cog6ToothIcon, SignalIcon, CheckCircleIcon, XCircleIcon, CubeIcon, EnvelopeIcon, InformationCircleIcon, UserCircleIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { EyeIcon, EyeSlashIcon, XCircleIcon as XCircleIconSolid } from '@heroicons/react/20/solid';
 import PlusCircleIcon from './icons/PlusCircleIcon';
 import TrashIcon from './icons/TrashIcon';
@@ -394,6 +394,9 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
   const initialThemeRef = useRef<'light' | 'dark' | 'system'>(themeService.getTheme());
   const initialLanguageRef = useRef<LanguageType>(i18nService.getLanguage());
   const didSaveRef = useRef(false);
+
+  // 模型 tab - 自带 API Key 折叠区
+  const [providerExpanded, setProviderExpanded] = useState(false);
 
   // Add state for active provider
   const [activeProvider, setActiveProvider] = useState<ProviderType>(getDefaultActiveProvider());
@@ -2159,7 +2162,88 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
 
       case 'model':
         return (
-          <div className="flex h-full">
+          <div className="flex flex-col h-full gap-3">
+
+            {/* ── 领取首次登录奖励 / 额度管理 ── */}
+            <div className="rounded-xl border dark:border-claude-darkBorder border-gray-200 overflow-hidden flex-shrink-0">
+              <div className="px-4 py-4">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-semibold dark:text-claude-darkText text-claude-text">
+                    {cloudEnabled ? i18nService.t('onboardingCreditsTitle') : i18nService.t('onboardingClaimTitle')}
+                  </span>
+                  {cloudEnabled && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                      已激活
+                    </span>
+                  )}
+                </div>
+                {!cloudEnabled ? (
+                  <>
+                    <p className="text-xs dark:text-claude-darkTextSecondary text-claude-textSecondary mb-3">
+                      {i18nService.t('onboardingClaimDesc')}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setIsTogglingCloud(true);
+                        try {
+                          await cloudService.enable();
+                          setCloudEnabled(true);
+                          const cfg = configService.getConfig().cloud;
+                          setCloudCredits(cfg?.credits ?? 0);
+                          setCloudDeviceId(cfg?.deviceId ?? '');
+                        } finally {
+                          setIsTogglingCloud(false);
+                        }
+                      }}
+                      disabled={isTogglingCloud}
+                      className="w-full py-2.5 rounded-lg bg-claude-accent hover:bg-claude-accentHover disabled:opacity-60 text-white text-sm font-medium transition-colors"
+                    >
+                      {isTogglingCloud ? i18nService.t('onboardingClaiming') : i18nService.t('onboardingClaimBtn')}
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between mt-2">
+                    <div>
+                      <div className="text-xs dark:text-claude-darkTextSecondary text-claude-textSecondary">剩余额度</div>
+                      <div className="text-sm font-semibold dark:text-claude-darkText text-claude-text">
+                        {(cloudCredits / 10000).toFixed(0)}万 tokens
+                      </div>
+                      <div className="text-xs dark:text-claude-darkTextSecondary text-claude-textSecondary">
+                        约可对话 {cloudService.estimateChats(cloudCredits)} 次
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setRechargeStep('select'); setShowRechargeModal(true); }}
+                      className="px-4 py-2 rounded-lg bg-claude-accent hover:bg-claude-accentHover text-white text-sm font-medium transition-colors"
+                    >
+                      {i18nService.t('cloudRecharge')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── 自带 API Key（折叠） ── */}
+            <div className="rounded-xl border dark:border-claude-darkBorder border-gray-200 overflow-hidden flex flex-col flex-1 min-h-0">
+              <button
+                type="button"
+                onClick={() => setProviderExpanded(v => !v)}
+                className="w-full flex items-center justify-between px-4 py-3.5 text-left hover:dark:bg-claude-darkBg hover:bg-gray-50 transition-colors flex-shrink-0"
+              >
+                <span className="text-sm font-medium dark:text-claude-darkText text-claude-text">
+                  {i18nService.t('onboardingOwnKey')}
+                </span>
+                {providerExpanded
+                  ? <ChevronDownIcon className="h-4 w-4 dark:text-claude-darkTextSecondary text-claude-textSecondary" />
+                  : <ChevronRightIcon className="h-4 w-4 dark:text-claude-darkTextSecondary text-claude-textSecondary" />
+                }
+              </button>
+
+              {providerExpanded && (
+              <div className="border-t dark:border-claude-darkBorder border-gray-100 flex flex-1 min-h-0 overflow-hidden px-0">
+              <div className="flex h-full w-full">
             {/* Provider List - Left Side */}
             <div className="w-2/5 border-r dark:border-claude-darkBorder border-claude-border pr-3 space-y-1.5 overflow-y-auto">
               <div className="flex items-center justify-between mb-2 px-1">
@@ -2631,6 +2715,10 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
                 </div>
               </div>
             </div>
+            </div>
+            )} {/* end providerExpanded */}
+            </div> {/* end collapsible wrapper */}
+
           </div>
         );
 

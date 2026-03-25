@@ -23,7 +23,6 @@ import type { CoworkPermissionResult } from './types/cowork';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import { i18nService } from './services/i18n';
 import { matchesShortcut } from './services/shortcuts';
-import SetupWizard from './components/SetupWizard';
 import PrivacyDialog from './components/PrivacyDialog';
 
 const App: React.FC = () => {
@@ -35,7 +34,6 @@ const App: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [, forceLanguageRefresh] = useState(0);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [privacyAgreed, setPrivacyAgreed] = useState<boolean | null>(null);
   const toastTimerRef = useRef<number | null>(null);
   const hasInitialized = useRef(false);
@@ -137,14 +135,6 @@ const App: React.FC = () => {
           ) ?? resolvedModels[0];
           dispatch(setSelectedModel(preferredModel));
         }
-
-        // 检测是否需要首次配置向导（未开启云额度 且 无任何可用 provider 配置）
-        const needsSetup = !config.cloud?.enabled &&
-          !config.api.key &&
-          (!config.providers || Object.values(config.providers).every(
-            (p) => !p.enabled || !p.apiKey
-          ));
-        setShowSetupWizard(needsSetup);
 
         // 检查隐私协议是否已同意（必须在 setIsInitialized 之前）
         const agreed = await window.electron.store.get('privacy_agreed');
@@ -266,6 +256,9 @@ const App: React.FC = () => {
   const handlePrivacyAccept = useCallback(async () => {
     await window.electron.store.set('privacy_agreed', true);
     setPrivacyAgreed(true);
+    // 同意协议后直接打开模型设置页，引导用户领取首次登录奖励
+    setSettingsOptions({ initialTab: 'model' });
+    setShowSettings(true);
   }, []);
 
   const handlePrivacyReject = useCallback(() => {
@@ -466,9 +459,6 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen overflow-hidden flex flex-col dark:bg-claude-darkSurfaceMuted bg-claude-surfaceMuted">
-      {showSetupWizard && (
-        <SetupWizard onComplete={() => setShowSetupWizard(false)} />
-      )}
       {toastMessage && (
         <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
       )}
