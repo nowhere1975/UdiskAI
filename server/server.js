@@ -79,13 +79,14 @@ function md5(str) {
   return crypto.createHash('md5').update(str).digest('hex');
 }
 
-// Hupijiao signature: sort non-empty params by key, concat as k=v&..., append &key=SECRET, MD5
+// Hupijiao signature: sort non-empty params by ASCII key, concat k=v&..., append SECRET directly, MD5 lowercase
 function hupijiaoSign(params, secret) {
   const sorted = Object.keys(params)
     .filter(k => k !== 'hash' && params[k] !== '' && params[k] !== undefined)
     .sort();
-  const str = sorted.map(k => `${k}=${params[k]}`).join('&') + '&key=' + secret;
-  return md5(str).toUpperCase();
+  const str = sorted.map(k => `${k}=${params[k]}`).join('&') + secret;
+  console.debug('[pay/sign]', str);
+  return md5(str); // lowercase per xunhupay spec
 }
 
 // Simple in-memory rate limiter
@@ -112,6 +113,7 @@ setInterval(() => {
 function hupijiaoRequest(params) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify(params);
+    console.debug('[pay] request body:', body);
     const url = new URL('https://api.xunhupay.com/payment/do.html');
     const options = {
       hostname: url.hostname,
@@ -387,7 +389,7 @@ app.post('/pay/notify', (req, res) => {
 
   // Verify signature
   const expectedHash = hupijiaoSign(params, HUPIJIAO_APP_SECRET);
-  if (!params.hash || params.hash.toUpperCase() !== expectedHash) {
+  if (!params.hash || params.hash.toLowerCase() !== expectedHash) {
     console.warn('[pay/notify] signature mismatch, rejecting');
     return res.send('fail');
   }
