@@ -79,12 +79,12 @@ function md5(str) {
   return crypto.createHash('md5').update(str).digest('hex');
 }
 
-// Hupijiao signature: sort non-empty params by key, concat values, append secret, MD5
+// Hupijiao signature: sort non-empty params by key, concat as k=v&..., append &key=SECRET, MD5
 function hupijiaoSign(params, secret) {
   const sorted = Object.keys(params)
     .filter(k => k !== 'hash' && params[k] !== '' && params[k] !== undefined)
     .sort();
-  const str = sorted.map(k => `${k}=${params[k]}`).join('&') + secret;
+  const str = sorted.map(k => `${k}=${params[k]}`).join('&') + '&key=' + secret;
   return md5(str).toUpperCase();
 }
 
