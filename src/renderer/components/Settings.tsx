@@ -2061,7 +2061,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
                     <div className="h-2 rounded-full dark:bg-claude-darkBg bg-gray-100 mb-5 overflow-hidden">
                       <div
                         className="h-full rounded-full bg-gradient-to-r from-claude-accent to-blue-500 transition-all duration-700"
-                        style={{ width: `${Math.min(100, Math.max(3, (cloudCredits / 30000) * 100))}%` }}
+                        style={{ width: `${Math.min(100, Math.max(3, (cloudCredits / 120000) * 100))}%` }}
                       />
                     </div>
                     <button

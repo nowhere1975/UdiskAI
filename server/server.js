@@ -19,7 +19,7 @@ const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek
 const HUPIJIAO_APP_ID     = process.env.HUPIJIAO_APP_ID || '';
 const HUPIJIAO_APP_SECRET = process.env.HUPIJIAO_APP_SECRET || '';
 const HUPIJIAO_NOTIFY_URL = process.env.HUPIJIAO_NOTIFY_URL || '';
-const FREE_CREDITS      = parseInt(process.env.FREE_CREDITS || '2000', 10);
+const FREE_CREDITS      = parseInt(process.env.FREE_CREDITS || '10000', 10);
 
 // Packages: amount in CNY → credits (积分)
 const PACKAGES = {

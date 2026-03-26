@@ -654,7 +654,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
 
     // 新手引导
     onboardingClaimTitle: '领取首次登录奖励',
-    onboardingClaimDesc: '赠送 2,000 积分 · 永不过期',
+    onboardingClaimDesc: '赠送 10,000 积分 · 永不过期',
     onboardingClaimBtn: '领取奖励',
     onboardingClaiming: '领取中...',
     onboardingClaimSuccess: '领取成功！',
@@ -1503,7 +1503,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
 
     // Onboarding
     onboardingClaimTitle: 'Claim Your First-Login Reward',
-    onboardingClaimDesc: '2,000 points · never expire',
+    onboardingClaimDesc: '10,000 points · never expire',
     onboardingClaimBtn: 'Claim Reward',
     onboardingClaiming: 'Claiming...',
     onboardingClaimSuccess: 'Claimed!',
