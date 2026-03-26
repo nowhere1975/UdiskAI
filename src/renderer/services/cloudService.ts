@@ -12,6 +12,8 @@ const CREDITS_SYNC_INTERVAL = 5 * 60 * 1000; // 5 分钟同步一次
 
 class CloudService {
   private syncTimer: ReturnType<typeof setInterval> | null = null;
+  private unsubWindowState: (() => void) | null = null;
+  private lastFocusRefreshTime = 0;
 
   // ── 初始化 ──────────────────────────────────────────────────────────────
 
@@ -21,6 +23,7 @@ class CloudService {
 
     await this.ensureRegistered();
     this.startSyncTimer();
+    this.startFocusRefresh();
   }
 
   // ── Device ID ────────────────────────────────────────────────────────────
@@ -220,12 +223,14 @@ class CloudService {
     await configService.updateConfig({ cloud: { ...cfg, enabled: true } });
     await this.ensureRegistered();
     this.startSyncTimer();
+    this.startFocusRefresh();
   }
 
   async disable() {
     const cfg = this.getCloudConfig();
     await configService.updateConfig({ cloud: { ...cfg, enabled: false } });
     this.stopSyncTimer();
+    this.stopFocusRefresh();
   }
 
   // ── Private ───────────────────────────────────────────────────────────────
@@ -260,6 +265,23 @@ class CloudService {
       clearInterval(this.syncTimer);
       this.syncTimer = null;
     }
+  }
+
+  private startFocusRefresh() {
+    this.unsubWindowState = window.electron.window.onStateChanged((state) => {
+      if (state.isFocused) {
+        const now = Date.now();
+        if (now - this.lastFocusRefreshTime > 30_000) {
+          this.lastFocusRefreshTime = now;
+          this.syncCredits().catch(() => {});
+        }
+      }
+    });
+  }
+
+  private stopFocusRefresh() {
+    this.unsubWindowState?.();
+    this.unsubWindowState = null;
   }
 }
 
