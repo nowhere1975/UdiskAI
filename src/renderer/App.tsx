@@ -126,7 +126,12 @@ const App: React.FC = () => {
           providerKey: undefined,
           supportsImage: model.supportsImage ?? false,
         }));
-        const resolvedModels = providerModels.length > 0 ? providerModels : fallbackModels;
+        let resolvedModels = providerModels.length > 0 ? providerModels : fallbackModels;
+        // When cloud credits mode is enabled but no provider models are configured,
+        // inject a placeholder so ModelSelector doesn't show "please configure model".
+        if (resolvedModels.length === 0 && cloudService.isEnabled()) {
+          resolvedModels = [{ id: 'cloud', name: i18nService.t('cloudModel'), providerKey: 'cloud', supportsImage: false }];
+        }
         if (resolvedModels.length > 0) {
           dispatch(setAvailableModels(resolvedModels));
           const preferredModel = resolvedModels.find(
@@ -280,8 +285,8 @@ const App: React.FC = () => {
       baseUrl: config.api.baseUrl,
     });
 
+    const allModels: { id: string; name: string; provider?: string; providerKey?: string; supportsImage?: boolean }[] = [];
     if (config.providers) {
-      const allModels: { id: string; name: string; provider?: string; providerKey?: string; supportsImage?: boolean }[] = [];
       Object.entries(config.providers).forEach(([providerName, providerConfig]) => {
         if (providerConfig.enabled && providerConfig.models) {
           providerConfig.models.forEach((model: { id: string; name: string; supportsImage?: boolean }) => {
@@ -295,9 +300,11 @@ const App: React.FC = () => {
           });
         }
       });
-      if (allModels.length > 0) {
-        dispatch(setAvailableModels(allModels));
-      }
+    }
+    if (allModels.length > 0) {
+      dispatch(setAvailableModels(allModels));
+    } else if (cloudService.isEnabled()) {
+      dispatch(setAvailableModels([{ id: 'cloud', name: i18nService.t('cloudModel'), providerKey: 'cloud', supportsImage: false }]));
     }
   };
 

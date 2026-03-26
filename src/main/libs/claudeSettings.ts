@@ -41,6 +41,9 @@ type AppConfig = {
     defaultModelProvider?: string;
   };
   providers?: Record<string, ProviderConfig>;
+  cloud?: {
+    enabled?: boolean;
+  };
 };
 
 export type ApiConfigResolution = {

@@ -438,37 +438,13 @@ export const CONFIG_KEYS = {
 };
 
 // 模型提供商分类
-export const CHINA_PROVIDERS = ['deepseek', 'moonshot', 'qwen', 'zhipu', 'minimax', 'volcengine', 'youdaozhiyun', 'stepfun', 'xiaomi', 'ollama', 'custom'] as const;
+export const CHINA_PROVIDERS = ['moonshot', 'zhipu', 'minimax', 'custom'] as const;
 export const GLOBAL_PROVIDERS = ['openai', 'gemini', 'anthropic', 'openrouter'] as const;
 export const EN_PRIORITY_PROVIDERS = ['openai', 'anthropic', 'gemini'] as const;
 
 /**
  * 根据语言获取可见的模型提供商
  */
-export const getVisibleProviders = (language: 'zh' | 'en'): readonly string[] => {
-  // 开发环境下显示所有提供商
-  // if (import.meta.env.DEV) {
-  //   return [...CHINA_PROVIDERS, ...GLOBAL_PROVIDERS];
-  // }
-
-  // 中文 → 中国版，英文 → 国际版
-  if (language === 'zh') {
-    return CHINA_PROVIDERS;
-  }
-
-  const orderedProviders = [
-    ...EN_PRIORITY_PROVIDERS,
-    ...CHINA_PROVIDERS,
-    ...GLOBAL_PROVIDERS,
-  ];
-  const uniqueProviders = [...new Set(orderedProviders)];
-  // Move ollama and custom to the end, with custom last
-  for (const key of ['ollama', 'custom'] as const) {
-    const idx = uniqueProviders.indexOf(key);
-    if (idx !== -1) {
-      uniqueProviders.splice(idx, 1);
-      uniqueProviders.push(key);
-    }
-  }
-  return uniqueProviders;
+export const getVisibleProviders = (_language: 'zh' | 'en'): readonly string[] => {
+  return CHINA_PROVIDERS;
 };

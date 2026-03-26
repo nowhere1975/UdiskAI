@@ -1934,6 +1934,11 @@ if (!gotTheLock) {
   });
 
   ipcMain.handle('check-api-config', async (_event, options?: { probeModel?: boolean }) => {
+    // Cloud credits mode is a valid configuration for regular chat.
+    const appConfig = getStore().get<{ cloud?: { enabled?: boolean } }>('app_config');
+    if (appConfig?.cloud?.enabled === true) {
+      return { hasConfig: true, config: null };
+    }
     const { config, error } = resolveCurrentApiConfig();
     if (config && options?.probeModel) {
       const probe = await probeCoworkModelReadiness();
