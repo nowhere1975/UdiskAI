@@ -2050,21 +2050,18 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
                       </div>
                       <div className="flex items-baseline gap-2 mb-1">
                         <span className="text-4xl font-bold dark:text-claude-darkText text-claude-text tabular-nums">
-                          {(cloudCredits / 10000).toFixed(0)}
+                          {cloudCredits.toLocaleString()}
                         </span>
                         <span className="text-lg dark:text-claude-darkTextSecondary text-claude-textSecondary">
-                          万 tokens
+                          积分
                         </span>
                       </div>
-                      <p className="text-sm dark:text-claude-darkTextSecondary text-claude-textSecondary">
-                        约可对话 {cloudService.estimateChats(cloudCredits)} 次
-                      </p>
                     </div>
                     {/* 进度条 */}
                     <div className="h-2 rounded-full dark:bg-claude-darkBg bg-gray-100 mb-5 overflow-hidden">
                       <div
                         className="h-full rounded-full bg-gradient-to-r from-claude-accent to-blue-500 transition-all duration-700"
-                        style={{ width: `${Math.min(100, Math.max(3, (cloudCredits / 500000) * 100))}%` }}
+                        style={{ width: `${Math.min(100, Math.max(3, (cloudCredits / 30000) * 100))}%` }}
                       />
                     </div>
                     <button

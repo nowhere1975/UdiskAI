@@ -10,9 +10,6 @@ import { ChatMessagePayload, ChatUserMessageInput } from '../types/chat';
 
 const CREDITS_SYNC_INTERVAL = 5 * 60 * 1000; // 5 分钟同步一次
 
-// 每次对话平均消耗 token 数，用于显示"约可对话 N 次"
-const AVG_TOKENS_PER_CHAT = 5000;
-
 class CloudService {
   private syncTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -86,12 +83,6 @@ class CloudService {
     return this.getCloudConfig().credits;
   }
 
-  /** 余额转换为"约可对话 N 次" */
-  estimateChats(credits?: number): number {
-    const c = credits ?? this.getCachedCredits();
-    return Math.floor(c / AVG_TOKENS_PER_CHAT);
-  }
-
   // ── Chat 代理 ─────────────────────────────────────────────────────────────
 
   /** 通过服务端代理发送 AI 请求（流式） */
@@ -109,7 +100,7 @@ class CloudService {
       // 先同步确认，防止缓存误差
       const latest = await this.syncCredits();
       if (latest <= 0) {
-        throw new CloudCreditsError('额度已用完，充值后继续使用');
+        throw new CloudCreditsError('积分不足，充值后继续使用');
       }
     }
 
@@ -140,7 +131,7 @@ class CloudService {
 
     if (res.status === 402) {
       await this.updateCachedCredits(0);
-      throw new CloudCreditsError('额度已用完，充值后继续使用');
+      throw new CloudCreditsError('积分不足，充值后继续使用');
     }
     if (!res.ok) {
       throw new Error(`cloud chat failed: ${res.status}`);

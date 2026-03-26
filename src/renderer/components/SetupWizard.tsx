@@ -177,12 +177,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
               ) : (
                 <div className="flex items-center justify-between mt-2">
                   <div>
-                    <div className="text-xs dark:text-claude-darkTextMuted text-claude-textMuted">剩余额度</div>
+                    <div className="text-xs dark:text-claude-darkTextMuted text-claude-textMuted">剩余积分</div>
                     <div className="text-sm font-semibold dark:text-claude-darkText text-claude-text">
-                      {(cloudService.getCachedCredits() / 10000).toFixed(0)}万 tokens
-                    </div>
-                    <div className="text-xs dark:text-claude-darkTextMuted text-claude-textMuted">
-                      约可对话 {cloudService.estimateChats()} 次
+                      {cloudService.getCachedCredits().toLocaleString()} 积分
                     </div>
                   </div>
                   <button

@@ -19,14 +19,17 @@ const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek
 const HUPIJIAO_APP_ID     = process.env.HUPIJIAO_APP_ID || '';
 const HUPIJIAO_APP_SECRET = process.env.HUPIJIAO_APP_SECRET || '';
 const HUPIJIAO_NOTIFY_URL = process.env.HUPIJIAO_NOTIFY_URL || '';
-const FREE_CREDITS      = parseInt(process.env.FREE_CREDITS || '2000000', 10);
+const FREE_CREDITS      = parseInt(process.env.FREE_CREDITS || '2000', 10);
 
-// Packages: amount in CNY → credits (tokens)
+// Packages: amount in CNY → credits (积分)
 const PACKAGES = {
-  pkg_10:  { amount: 10,  credits: 10_000_000,  label: 'UdiskAI 1000万tokens' },
-  pkg_30:  { amount: 30,  credits: 35_000_000,  label: 'UdiskAI 3500万tokens' },
-  pkg_100: { amount: 100, credits: 130_000_000, label: 'UdiskAI 1.3亿tokens' },
+  pkg_10:  { amount: 10,  credits: 10_000,  label: 'UdiskAI 积分 · 10000' },
+  pkg_30:  { amount: 30,  credits: 32_000,  label: 'UdiskAI 积分 · 32000' },
+  pkg_100: { amount: 100, credits: 120_000, label: 'UdiskAI 积分 · 120000' },
 };
+
+// Credits deducted per chat completion (fixed, independent of token count)
+const CREDITS_PER_CHAT = parseInt(process.env.CREDITS_PER_CHAT || '20', 10);
 
 // Rate limit: per device, max requests per window
 const RATE_WINDOW_MS = 1000;
@@ -203,8 +206,8 @@ app.post('/chat', async (req, res) => {
 
   const user = stmtGetUser.get(deviceId);
   if (!user) return res.status(404).json({ error: 'DEVICE_NOT_FOUND' });
-  if (user.credits <= 0) {
-    return res.status(402).json({ error: 'INSUFFICIENT_CREDITS', credits: 0 });
+  if (user.credits < CREDITS_PER_CHAT) {
+    return res.status(402).json({ error: 'INSUFFICIENT_CREDITS', credits: user.credits });
   }
 
   const isStream = stream === true || stream === 'true';
@@ -242,41 +245,14 @@ app.post('/chat', async (req, res) => {
         return;
       }
 
-      let buffer = '';
-      let totalTokens = 0;
-
       dsRes.on('data', chunk => {
         res.write(chunk); // forward raw SSE chunk immediately
-        buffer += chunk.toString();
-
-        // Parse usage from chunks (DeepSeek sends usage in the last data line)
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') continue;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            if (parsed.usage && parsed.usage.total_tokens) {
-              totalTokens = parsed.usage.total_tokens;
-            }
-          } catch { /* ignore parse errors on partial chunks */ }
-        }
       });
 
       dsRes.on('end', () => {
         res.end();
-        if (totalTokens > 0) {
-          const result = stmtDeduct.run(totalTokens, deviceId, totalTokens);
-          if (result.changes > 0) {
-            console.debug(`[chat/stream] deducted ${totalTokens} tokens for device`);
-          } else {
-            // credits ran out mid-stream; deduct whatever remains
-            const remaining = stmtGetCredits.get(deviceId)?.credits || 0;
-            if (remaining > 0) stmtDeduct.run(remaining, deviceId, remaining);
-          }
-        }
+        stmtDeduct.run(CREDITS_PER_CHAT, deviceId, CREDITS_PER_CHAT);
+        console.debug(`[chat/stream] deducted ${CREDITS_PER_CHAT} credits for device`);
       });
     });
 
@@ -306,17 +282,13 @@ app.post('/chat', async (req, res) => {
           return res.status(502).json({ error: 'UPSTREAM_PARSE_ERROR' });
         }
 
-        const used = parsed.usage?.total_tokens || 0;
-        let remaining = user.credits;
-        if (used > 0) {
-          stmtDeduct.run(used, deviceId, used);
-          remaining = Math.max(0, user.credits - used);
-        }
+        stmtDeduct.run(CREDITS_PER_CHAT, deviceId, CREDITS_PER_CHAT);
+        const remaining = Math.max(0, user.credits - CREDITS_PER_CHAT);
 
-        res.setHeader('X-Credits-Used', used);
+        res.setHeader('X-Credits-Used', CREDITS_PER_CHAT);
         res.setHeader('X-Credits-Remaining', remaining);
         res.json(parsed);
-        console.debug(`[chat] deducted ${used} tokens, remaining ~${remaining}`);
+        console.debug(`[chat] deducted ${CREDITS_PER_CHAT} credits, remaining ~${remaining}`);
       });
     });
 
