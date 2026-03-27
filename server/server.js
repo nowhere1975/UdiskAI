@@ -477,10 +477,8 @@ app.post('/v1/messages', async (req, res) => {
         'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(streamPayload),
-        'Accept-Encoding': 'identity',
-        'Connection': 'close',
       },
-      agent: new https.Agent({ keepAlive: false }),
+      agent: false,
     };
 
     const dsReq = proto.request(streamOptions, dsRes => {
