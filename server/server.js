@@ -458,18 +458,10 @@ app.post('/v1/messages', async (req, res) => {
   const proto = dsUrl.protocol === 'https:' ? https : http;
 
   if (isStream) {
-    // Stream: convert OpenAI SSE → Anthropic SSE (using fetch to avoid socket hang-up)
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('X-Accel-Buffering', 'no');
-
-    const msgId = `msg_${Date.now()}`;
-    res.write(`event: message_start\ndata: ${JSON.stringify({ type: 'message_start', message: { id: msgId, type: 'message', role: 'assistant', content: [], model: CLOUD_MODEL_NAME, stop_reason: null, stop_sequence: null, usage: { input_tokens: 0, output_tokens: 0 } } })}\n\n`);
-    res.write(`event: content_block_start\ndata: ${JSON.stringify({ type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } })}\n\n`);
-    res.write(`event: ping\ndata: ${JSON.stringify({ type: 'ping' })}\n\n`);
-
     const streamPayload = JSON.stringify({ model: targetModel, messages: openaiMessages, stream: true });
-    const streamOptions = {
+    const msgId = `msg_${Date.now()}`;
+
+    const dsReq = proto.request({
       hostname: dsUrl.hostname,
       path: dsUrl.pathname,
       method: 'POST',
@@ -479,24 +471,28 @@ app.post('/v1/messages', async (req, res) => {
         'Content-Length': Buffer.byteLength(streamPayload),
       },
       agent: false,
-    };
-
-    const dsReq = proto.request(streamOptions, dsRes => {
+    }, dsRes => {
       if (dsRes.statusCode !== 200) {
         let errBody = '';
         dsRes.on('data', c => { errBody += c; });
         dsRes.on('end', () => {
-          if (!res.writableEnded) {
-            res.write(`event: error\ndata: ${JSON.stringify({ type: 'error', error: { type: 'api_error', message: 'Upstream error' } })}\n\n`);
-            res.end();
+          if (!res.headersSent) {
+            res.status(502).json({ type: 'error', error: { type: 'api_error', message: 'Upstream error' } });
           }
         });
         return;
       }
 
+      // DeepSeek confirmed OK — now send SSE headers and start streaming
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('X-Accel-Buffering', 'no');
+      res.write(`event: message_start\ndata: ${JSON.stringify({ type: 'message_start', message: { id: msgId, type: 'message', role: 'assistant', content: [], model: CLOUD_MODEL_NAME, stop_reason: null, stop_sequence: null, usage: { input_tokens: 0, output_tokens: 0 } } })}\n\n`);
+      res.write(`event: content_block_start\ndata: ${JSON.stringify({ type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } })}\n\n`);
+      res.write(`event: ping\ndata: ${JSON.stringify({ type: 'ping' })}\n\n`);
+
       let buffer = '';
       dsRes.on('data', chunk => {
-        if (req.destroyed) return;
         buffer += chunk.toString();
         const lines = buffer.split('\n');
         buffer = lines.pop() ?? '';
@@ -528,7 +524,9 @@ app.post('/v1/messages', async (req, res) => {
 
     dsReq.on('error', err => {
       console.error('[v1/messages/stream] upstream request failed:', err.message, err.code);
-      if (!res.writableEnded) {
+      if (!res.headersSent) {
+        res.status(502).json({ type: 'error', error: { type: 'api_error', message: 'Upstream unavailable' } });
+      } else if (!res.writableEnded) {
         res.write(`event: error\ndata: ${JSON.stringify({ type: 'error', error: { type: 'api_error', message: 'Upstream unavailable' } })}\n\n`);
         res.end();
       }
