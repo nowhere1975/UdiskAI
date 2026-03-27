@@ -54,6 +54,9 @@ class CloudService {
       if (!res.ok) throw new Error(`register failed: ${res.status}`);
       const data = await res.json();
       await this.updateCachedCredits(data.credits);
+      if (data.modelId && data.modelName) {
+        await this.updateCachedModel(data.modelId, data.modelName);
+      }
       return data.credits;
     } catch (err) {
       console.warn('[cloud] register/sync failed:', err);
@@ -75,6 +78,9 @@ class CloudService {
       if (!res.ok) throw new Error(`credits query failed: ${res.status}`);
       const data = await res.json();
       await this.updateCachedCredits(data.credits);
+      if (data.modelId && data.modelName) {
+        await this.updateCachedModel(data.modelId, data.modelName);
+      }
       return data.credits;
     } catch (err) {
       console.warn('[cloud] credits sync failed:', err);
@@ -84,6 +90,14 @@ class CloudService {
 
   getCachedCredits(): number {
     return this.getCloudConfig().credits;
+  }
+
+  getCachedModel(): { modelId: string; modelName: string } {
+    const cfg = this.getCloudConfig();
+    return {
+      modelId: cfg.modelId || 'deepseek-chat',
+      modelName: cfg.modelName || 'DeepSeek-V3',
+    };
   }
 
   // ── Chat 代理 ─────────────────────────────────────────────────────────────
@@ -251,6 +265,12 @@ class CloudService {
     await configService.updateConfig({
       cloud: { ...cfg, credits, lastSyncAt: Date.now() },
     });
+  }
+
+  private async updateCachedModel(modelId: string, modelName: string) {
+    const cfg = this.getCloudConfig();
+    if (cfg.modelId === modelId && cfg.modelName === modelName) return;
+    await configService.updateConfig({ cloud: { ...cfg, modelId, modelName } });
   }
 
   private startSyncTimer() {

@@ -232,6 +232,8 @@ export interface AppConfig {
     credits: number;        // 本地缓存的余额
     lastSyncAt: number;     // 上次同步时间戳
     serverUrl: string;      // 服务端地址
+    modelId?: string;       // 服务端实际使用的模型 ID
+    modelName?: string;     // 服务端实际使用的模型显示名
   };
 }
 

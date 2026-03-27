@@ -83,6 +83,7 @@ interface CoworkPromptInputProps {
   onStop?: () => void;
   isStreaming?: boolean;
   placeholder?: string;
+  cyclingPlaceholders?: string[];
   disabled?: boolean;
   size?: 'normal' | 'large';
   workingDirectory?: string;
@@ -100,6 +101,7 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
       onStop,
       isStreaming = false,
       placeholder = 'Enter your task...',
+      cyclingPlaceholders,
       disabled = false,
       size = 'normal',
       workingDirectory = '',
@@ -636,18 +638,29 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
         )}
         {isLarge ? (
           <>
-            <textarea
-              ref={textareaRef}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onPaste={handlePaste}
-              placeholder={placeholder}
-              disabled={disabled}
-              rows={isLarge ? 2 : 1}
-              className={textareaClass}
-              style={{ minHeight: `${minHeight}px` }}
-            />
+            <div className="relative">
+              <textarea
+                ref={textareaRef}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+                placeholder={cyclingPlaceholders ? '' : placeholder}
+                disabled={disabled}
+                rows={isLarge ? 2 : 1}
+                className={textareaClass}
+                style={{ minHeight: `${minHeight}px` }}
+              />
+              {cyclingPlaceholders && cyclingPlaceholders.length > 0 && !value && (
+                <div className="pointer-events-none absolute left-4 top-[11px] flex flex-col gap-0.5 select-none">
+                  {cyclingPlaceholders.map((text, i) => (
+                    <span key={i} className="text-[15px] leading-6 dark:text-claude-darkTextSecondary/60 text-claude-textSecondary/60">
+                      {text}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="flex items-center justify-between px-4 pb-2 pt-1.5">
               <div className="flex items-center gap-2 relative">
                 {showFolderSelector && (

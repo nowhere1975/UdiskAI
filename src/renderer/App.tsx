@@ -304,7 +304,8 @@ const App: React.FC = () => {
     if (allModels.length > 0) {
       dispatch(setAvailableModels(allModels));
     } else if (cloudService.isEnabled()) {
-      dispatch(setAvailableModels([{ id: 'cloud', name: i18nService.t('cloudModel'), providerKey: 'cloud', supportsImage: false }]));
+      const { modelId, modelName } = cloudService.getCachedModel();
+      dispatch(setAvailableModels([{ id: modelId, name: modelName, providerKey: 'cloud', supportsImage: false }]));
     }
   };
 

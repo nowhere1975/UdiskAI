@@ -2043,6 +2043,8 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
                           const cfg = configService.getConfig().cloud;
                           setCloudCredits(cfg?.credits ?? 0);
                           setCloudDeviceId(cfg?.deviceId ?? '');
+                          const { modelId, modelName } = cloudService.getCachedModel();
+                          dispatch(setAvailableModels([{ id: modelId, name: modelName, providerKey: 'cloud', supportsImage: false }]));
                         } finally {
                           setIsTogglingCloud(false);
                         }

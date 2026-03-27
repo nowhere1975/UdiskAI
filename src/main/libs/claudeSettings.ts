@@ -261,6 +261,36 @@ export function resolveCurrentApiConfig(target: OpenAICompatProxyTarget = 'local
     };
   }
 
+  // Cloud credits mode: route through UdiskAI server using deviceId as auth token
+  if (appConfig.cloud?.enabled) {
+    const cloud = appConfig.cloud as {
+      enabled: boolean;
+      deviceId?: string;
+      serverUrl?: string;
+      modelId?: string;
+      modelName?: string;
+    };
+    const deviceId = cloud.deviceId?.trim();
+    const serverUrl = (cloud.serverUrl?.trim() || 'https://udiskai.top/api').replace(/\/$/, '');
+    const modelId = cloud.modelId?.trim() || 'deepseek-chat';
+    if (!deviceId) {
+      return { config: null, error: 'Cloud mode: device not registered yet.' };
+    }
+    return {
+      config: {
+        apiKey: deviceId,
+        baseURL: serverUrl,
+        model: modelId,
+        apiType: 'anthropic',
+      },
+      providerMetadata: {
+        providerName: 'cloud',
+        codingPlanEnabled: false,
+        supportsImage: false,
+      },
+    };
+  }
+
   const { matched, error } = resolveMatchedProvider(appConfig);
   if (!matched) {
     return {

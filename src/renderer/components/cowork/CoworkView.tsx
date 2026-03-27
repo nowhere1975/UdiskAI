@@ -431,6 +431,10 @@ const CoworkView: React.FC<CoworkViewProps> = ({ onRequestAppSettings, onShowSki
                 isStreaming={isStreaming}
                 disabled={false}
                 placeholder={i18nService.t('coworkPlaceholder')}
+                cyclingPlaceholders={[
+                  '帮我整理下桌面',
+                  '写本月工作总结，工作文件在我的xxx文件夹',
+                ]}
                 size="large"
                 workingDirectory={config.workingDirectory}
                 onWorkingDirectoryChange={async (dir: string) => {

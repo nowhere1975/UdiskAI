@@ -30,6 +30,8 @@ const PACKAGES = {
 
 // Credits deducted per chat completion (fixed, independent of token count)
 const CREDITS_PER_CHAT = parseInt(process.env.CREDITS_PER_CHAT || '20', 10);
+const CLOUD_MODEL_ID   = process.env.CLOUD_MODEL_ID   || 'deepseek-chat';
+const CLOUD_MODEL_NAME = process.env.CLOUD_MODEL_NAME || 'DeepSeek-V3';
 
 // Rate limit: per device, max requests per window
 const RATE_WINDOW_MS = 1000;
@@ -166,12 +168,12 @@ app.post('/auth/register', (req, res) => {
 
   const existing = stmtGetUser.get(deviceId);
   if (existing) {
-    return res.json({ deviceId, credits: existing.credits, isNew: false });
+    return res.json({ deviceId, credits: existing.credits, isNew: false, modelId: CLOUD_MODEL_ID, modelName: CLOUD_MODEL_NAME });
   }
 
   stmtInsertUser.run(deviceId, FREE_CREDITS);
   console.log(`[register] new device registered, credits=${FREE_CREDITS}`);
-  return res.json({ deviceId, credits: FREE_CREDITS, isNew: true });
+  return res.json({ deviceId, credits: FREE_CREDITS, isNew: true, modelId: CLOUD_MODEL_ID, modelName: CLOUD_MODEL_NAME });
 });
 
 // ---------------------------------------------------------------------------
@@ -185,7 +187,7 @@ app.get('/credits', (req, res) => {
 
   const row = stmtGetCredits.get(deviceId);
   if (!row) return res.status(404).json({ error: 'DEVICE_NOT_FOUND' });
-  return res.json({ deviceId, credits: row.credits });
+  return res.json({ deviceId, credits: row.credits, modelId: CLOUD_MODEL_ID, modelName: CLOUD_MODEL_NAME });
 });
 
 // ---------------------------------------------------------------------------
@@ -405,6 +407,169 @@ app.get('/pay/status', (req, res) => {
   const payload = { orderId: order.order_id, status: order.status };
   if (order.status === 'paid') payload.credits = order.credits;
   return res.json(payload);
+});
+
+// ---------------------------------------------------------------------------
+// POST /v1/messages  — Anthropic-compatible endpoint for Claude Agent SDK
+// Authorization: Bearer <deviceId>
+// ---------------------------------------------------------------------------
+app.post('/v1/messages', async (req, res) => {
+  // Extract deviceId from Authorization header
+  const authHeader = req.headers['authorization'] || '';
+  const deviceId = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+
+  if (!validateDeviceId(deviceId)) {
+    return res.status(401).json({ type: 'error', error: { type: 'authentication_error', message: 'Invalid device ID' } });
+  }
+  if (!checkRateLimit(deviceId)) {
+    return res.status(429).json({ type: 'error', error: { type: 'rate_limit_error', message: 'Rate limited' } });
+  }
+
+  const user = stmtGetUser.get(deviceId);
+  if (!user) return res.status(404).json({ type: 'error', error: { type: 'not_found_error', message: 'Device not registered' } });
+  if (user.credits < CREDITS_PER_CHAT) {
+    return res.status(402).json({ type: 'error', error: { type: 'payment_required', message: 'INSUFFICIENT_CREDITS', credits: user.credits } });
+  }
+
+  // Convert Anthropic messages format → OpenAI format
+  const { messages: anthropicMessages = [], system, stream: isStream } = req.body;
+  const openaiMessages = [];
+  if (system) {
+    const systemText = Array.isArray(system)
+      ? system.filter(b => b.type === 'text').map(b => b.text).join('\n')
+      : system;
+    if (systemText) openaiMessages.push({ role: 'system', content: systemText });
+  }
+  for (const msg of anthropicMessages) {
+    let content = '';
+    if (typeof msg.content === 'string') {
+      content = msg.content;
+    } else if (Array.isArray(msg.content)) {
+      content = msg.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    }
+    openaiMessages.push({ role: msg.role, content });
+  }
+
+  const targetModel = CLOUD_MODEL_ID;
+  const payload = JSON.stringify({ model: targetModel, messages: openaiMessages, stream: !!isStream });
+
+  const dsUrl = new URL('/v1/chat/completions', DEEPSEEK_BASE_URL);
+  const options = {
+    hostname: dsUrl.hostname,
+    path: dsUrl.pathname,
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(payload),
+    },
+  };
+  const proto = dsUrl.protocol === 'https:' ? https : http;
+
+  if (isStream) {
+    // Stream: convert OpenAI SSE → Anthropic SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    // Send Anthropic stream preamble
+    const msgId = `msg_${Date.now()}`;
+    res.write(`event: message_start\ndata: ${JSON.stringify({ type: 'message_start', message: { id: msgId, type: 'message', role: 'assistant', content: [], model: CLOUD_MODEL_NAME, stop_reason: null, stop_sequence: null, usage: { input_tokens: 0, output_tokens: 0 } } })}\n\n`);
+    res.write(`event: content_block_start\ndata: ${JSON.stringify({ type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } })}\n\n`);
+    res.write(`event: ping\ndata: ${JSON.stringify({ type: 'ping' })}\n\n`);
+
+    const dsReq = proto.request(options, dsRes => {
+      if (dsRes.statusCode !== 200) {
+        let errBody = '';
+        dsRes.on('data', c => { errBody += c; });
+        dsRes.on('end', () => {
+          res.write(`event: error\ndata: ${JSON.stringify({ type: 'error', error: { type: 'api_error', message: 'Upstream error' } })}\n\n`);
+          res.end();
+        });
+        return;
+      }
+
+      let buffer = '';
+      dsRes.on('data', chunk => {
+        buffer += chunk.toString();
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) {
+              res.write(`event: content_block_delta\ndata: ${JSON.stringify({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: delta } })}\n\n`);
+            }
+          } catch { /* skip malformed */ }
+        }
+      });
+
+      dsRes.on('end', () => {
+        stmtDeduct.run(CREDITS_PER_CHAT, deviceId, CREDITS_PER_CHAT);
+        const remaining = Math.max(0, user.credits - CREDITS_PER_CHAT);
+        res.write(`event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: 0 })}\n\n`);
+        res.write(`event: message_delta\ndata: ${JSON.stringify({ type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: CREDITS_PER_CHAT } })}\n\n`);
+        res.write(`event: message_stop\ndata: ${JSON.stringify({ type: 'message_stop' })}\n\n`);
+        res.end();
+        console.debug(`[v1/messages/stream] deducted ${CREDITS_PER_CHAT} credits, remaining ~${remaining}`);
+      });
+    });
+
+    dsReq.on('error', err => {
+      console.error('[v1/messages/stream] upstream failed:', err);
+      res.write(`event: error\ndata: ${JSON.stringify({ type: 'error', error: { type: 'api_error', message: 'Upstream unavailable' } })}\n\n`);
+      res.end();
+    });
+
+    dsReq.write(payload);
+    dsReq.end();
+    req.on('close', () => dsReq.destroy());
+
+  } else {
+    // Non-streaming: convert OpenAI response → Anthropic response
+    const dsReq = proto.request(options, dsRes => {
+      let body = '';
+      dsRes.on('data', c => { body += c; });
+      dsRes.on('end', () => {
+        if (dsRes.statusCode !== 200) {
+          return res.status(502).json({ type: 'error', error: { type: 'api_error', message: 'Upstream error' } });
+        }
+        let parsed;
+        try { parsed = JSON.parse(body); } catch {
+          return res.status(502).json({ type: 'error', error: { type: 'api_error', message: 'Upstream parse error' } });
+        }
+        stmtDeduct.run(CREDITS_PER_CHAT, deviceId, CREDITS_PER_CHAT);
+        const remaining = Math.max(0, user.credits - CREDITS_PER_CHAT);
+        const text = parsed.choices?.[0]?.message?.content || '';
+        const anthropicResp = {
+          id: `msg_${Date.now()}`,
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'text', text }],
+          model: CLOUD_MODEL_NAME,
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: { input_tokens: parsed.usage?.prompt_tokens || 0, output_tokens: parsed.usage?.completion_tokens || 0 },
+        };
+        res.setHeader('X-Credits-Used', CREDITS_PER_CHAT);
+        res.setHeader('X-Credits-Remaining', remaining);
+        res.json(anthropicResp);
+        console.debug(`[v1/messages] deducted ${CREDITS_PER_CHAT} credits, remaining ~${remaining}`);
+      });
+    });
+
+    dsReq.on('error', err => {
+      console.error('[v1/messages] upstream failed:', err);
+      res.status(502).json({ type: 'error', error: { type: 'api_error', message: 'Upstream unavailable' } });
+    });
+
+    dsReq.write(payload);
+    dsReq.end();
+  }
 });
 
 // ---------------------------------------------------------------------------
