@@ -532,7 +532,6 @@ app.post('/v1/messages', async (req, res) => {
       }
     });
 
-    req.on('close', () => dsReq.destroy());
     dsReq.write(streamPayload);
     dsReq.end();
 
