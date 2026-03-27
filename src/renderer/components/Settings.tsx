@@ -37,7 +37,7 @@ import {
   QwenIcon,
   XiaomiIcon,
   StepfunIcon,
-  VolcengineIcon,
+  DoubaoIcon,
   OpenRouterIcon,
   OllamaIcon,
   CustomProviderIcon,
@@ -137,7 +137,7 @@ const providerMeta: Record<ProviderType, { label: string; icon: React.ReactNode 
   qwen: { label: 'Qwen', icon: <QwenIcon /> },
   xiaomi: { label: 'Xiaomi', icon: <XiaomiIcon /> },
   stepfun: { label: 'StepFun', icon: <StepfunIcon /> },
-  volcengine: { label: 'Volcengine', icon: <VolcengineIcon /> },
+  volcengine: { label: '豆包', icon: <DoubaoIcon /> },
   openrouter: { label: 'OpenRouter', icon: <OpenRouterIcon /> },
   ollama: { label: 'Ollama', icon: <OllamaIcon /> },
   custom: { label: 'Custom', icon: <CustomProviderIcon /> },
@@ -2022,22 +2022,10 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
                   )}
                 </div>
 
-                {/* DeepSeek 模型信息 + 下载链接 */}
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex items-center gap-1.5">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
-                      <circle cx="12" cy="12" r="12" fill="#4D6BFE"/>
-                      <text x="12" y="16.5" textAnchor="middle" fontSize="10" fontWeight="bold" fill="white" fontFamily="sans-serif">DS</text>
-                    </svg>
-                    <span className="text-xs dark:text-claude-darkTextMuted text-claude-textMuted">DeepSeek-V3 (deepseek-chat)</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => window.electron.shell.openExternal('https://UdiskAI.top')}
-                    className="text-xs text-claude-accent hover:underline"
-                  >
-                    {i18nService.t('cloudDownloadPage')}
-                  </button>
+                {/* DeepSeek 模型信息 */}
+                <div className="flex items-center gap-1.5 mb-5">
+                  <DeepSeekIcon className="w-4 h-4 opacity-70" />
+                  <span className="text-xs dark:text-claude-darkTextMuted text-claude-textMuted">DeepSeek-V3 (deepseek-chat)</span>
                 </div>
 
                 {!cloudEnabled ? (
@@ -2064,6 +2052,11 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
                     >
                       {isTogglingCloud ? i18nService.t('onboardingClaiming') : i18nService.t('onboardingClaimBtn')}
                     </button>
+                    <p className="text-center mt-2">
+                      <button type="button" onClick={() => window.electron.shell.openExternal('https://UdiskAI.top')} className="text-xs text-claude-accent hover:underline">
+                        UdiskAI.top
+                      </button>
+                    </p>
                   </>
                 ) : (
                   <>
@@ -2095,6 +2088,11 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
                     >
                       {i18nService.t('cloudRecharge')}
                     </button>
+                    <p className="text-center mt-2">
+                      <button type="button" onClick={() => window.electron.shell.openExternal('https://UdiskAI.top')} className="text-xs text-claude-accent hover:underline">
+                        UdiskAI.top
+                      </button>
+                    </p>
                   </>
                 )}
               </div>
@@ -2142,12 +2140,14 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
                   const isOpen = activeProvider === providerKey && providerExpanded;
                   const missingApiKey = providerRequiresApiKey(providerKey) && !config.apiKey.trim();
                   const canToggle = config.enabled || !missingApiKey;
-                  const isProviderBaseUrlLocked = (providerKey === 'zhipu' && providers.zhipu.codingPlanEnabled) || (providerKey === 'moonshot' && providers.moonshot.codingPlanEnabled);
+                  const isProviderBaseUrlLocked = (providerKey === 'zhipu' && providers.zhipu.codingPlanEnabled) || (providerKey === 'moonshot' && providers.moonshot.codingPlanEnabled) || (providerKey === 'volcengine' && providers.volcengine.codingPlanEnabled);
                   const displayBaseUrl = providerKey === 'zhipu' && providers.zhipu.codingPlanEnabled
                     ? (getEffectiveApiFormat('zhipu', providers.zhipu.apiFormat) === 'anthropic' ? 'https://open.bigmodel.cn/api/anthropic' : 'https://open.bigmodel.cn/api/coding/paas/v4')
                     : providerKey === 'moonshot' && providers.moonshot.codingPlanEnabled
                       ? (getEffectiveApiFormat('moonshot', providers.moonshot.apiFormat) === 'anthropic' ? 'https://api.kimi.com/coding' : 'https://api.kimi.com/coding/v1')
-                      : providers[providerKey].baseUrl;
+                      : providerKey === 'volcengine' && providers.volcengine.codingPlanEnabled
+                        ? (getEffectiveApiFormat('volcengine', providers.volcengine.apiFormat) === 'anthropic' ? 'https://ark.cn-beijing.volces.com/api/coding' : 'https://ark.cn-beijing.volces.com/api/coding/v3')
+                        : providers[providerKey].baseUrl;
 
                   return (
                     <div
@@ -2284,6 +2284,11 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
                                 <p className="text-[11px] text-claude-accent"><span className="font-medium">Coding Plan:</span> {i18nService.t('moonshotCodingPlanEndpointHint')}</p>
                               </div>
                             )}
+                            {providerKey === 'volcengine' && providers.volcengine.codingPlanEnabled && (
+                              <div className="mt-1.5 p-2 rounded-lg bg-claude-accent/10 border border-claude-accent/20">
+                                <p className="text-[11px] text-claude-accent"><span className="font-medium">Coding Plan:</span> {i18nService.t('volcengineCodingPlanEndpointHint')}</p>
+                              </div>
+                            )}
                           </div>
 
                           {/* API 格式 */}
@@ -2314,8 +2319,8 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
                             </div>
                           )}
 
-                          {/* Coding Plan 开关 (moonshot / zhipu) */}
-                          {(providerKey === 'zhipu' || providerKey === 'moonshot') && (
+                          {/* Coding Plan 开关 (moonshot / zhipu / volcengine) */}
+                          {(providerKey === 'zhipu' || providerKey === 'moonshot' || providerKey === 'volcengine') && (
                             <div className="flex items-center justify-between p-3 rounded-xl dark:bg-claude-darkSurface/50 bg-claude-surface/50 border dark:border-claude-darkBorder border-claude-border">
                               <div className="flex-1">
                                 <div className="flex items-center space-x-2">
@@ -2325,7 +2330,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
                                   <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-claude-accent/10 text-claude-accent">Beta</span>
                                 </div>
                                 <p className="mt-0.5 text-[11px] dark:text-claude-darkTextSecondary text-claude-textSecondary">
-                                  {providerKey === 'zhipu' ? i18nService.t('zhipuCodingPlanHint') : i18nService.t('moonshotCodingPlanHint')}
+                                  {providerKey === 'zhipu' ? i18nService.t('zhipuCodingPlanHint') : providerKey === 'volcengine' ? i18nService.t('volcengineCodingPlanHint') : i18nService.t('moonshotCodingPlanHint')}
                                 </p>
                               </div>
                               <label className="relative inline-flex items-center cursor-pointer ml-3">
@@ -2723,60 +2728,58 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
                   ))}
 
                   {/* 自定义金额 */}
-                  <div className="rounded-xl border dark:border-claude-darkBorder border-claude-border p-3 space-y-2">
-                    <p className="text-xs dark:text-claude-darkTextMuted text-claude-textMuted">{i18nService.t('cloudRechargePkgCustom')}</p>
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        min={1}
-                        step={1}
-                        value={customAmount}
-                        onChange={e => setCustomAmount(e.target.value)}
-                        placeholder={i18nService.t('cloudRechargeCustomPlaceholder')}
-                        className="flex-1 px-3 py-2 text-sm rounded-lg border dark:border-claude-darkBorder border-claude-border dark:bg-claude-darkBg bg-white dark:text-claude-darkText text-claude-text outline-none focus:border-claude-accent"
-                      />
-                      <button
-                        type="button"
-                        disabled={!customAmount || Number(customAmount) < 1}
-                        onClick={async () => {
-                          const amt = Math.floor(Number(customAmount));
-                          if (amt < 1) return;
-                          try {
-                            const order = await cloudService.createPayOrder('pkg_custom', amt);
-                            window.electron.shell.openExternal(order.payUrl);
-                            setRechargeOrderId(order.orderId);
-                            setRechargeStep('waiting');
-                            let attempts = 0;
-                            const timer = setInterval(async () => {
-                              attempts++;
-                              if (attempts > 200) { clearInterval(timer); setShowRechargeModal(false); return; }
-                              try {
-                                const status = await cloudService.pollPayStatus(order.orderId);
-                                if (status === 'paid') {
-                                  clearInterval(timer);
-                                  const newCredits = configService.getConfig().cloud?.credits ?? 0;
-                                  setCloudCredits(newCredits);
-                                  setRechargeStep('success');
-                                }
-                              } catch { /* retry */ }
-                            }, 3000);
-                            setRechargePollTimer(timer);
-                          } catch (err: any) {
-                            console.error('[recharge] failed:', err);
-                            setRechargeError(err?.message || i18nService.t('cloudRechargeFailed'));
-                            setRechargeStep('error');
-                          }
-                        }}
-                        className="px-4 py-2 text-sm font-medium rounded-lg bg-claude-accent text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
-                      >
-                        {i18nService.t('cloudRecharge')}
-                      </button>
-                    </div>
+                  <div className="flex items-center gap-2 px-4 py-3 rounded-xl border dark:border-claude-darkBorder border-claude-border">
+                    <span className="text-sm dark:text-claude-darkTextMuted text-claude-textMuted shrink-0">¥</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={customAmount}
+                      onChange={e => setCustomAmount(e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="自定义金额"
+                      className="flex-1 bg-transparent text-sm dark:text-claude-darkText text-claude-text outline-none placeholder:dark:text-claude-darkTextMuted placeholder:text-claude-textMuted min-w-0"
+                    />
                     {customAmount && Number(customAmount) >= 1 && (
-                      <p className="text-xs text-claude-accent">
-                        ¥{Math.floor(Number(customAmount))} = {(Math.floor(Number(customAmount)) * 1000).toLocaleString()} 积分
-                      </p>
+                      <span className="text-xs text-claude-accent shrink-0">
+                        {(Number(customAmount) * 1000).toLocaleString()} 积分
+                      </span>
                     )}
+                    <button
+                      type="button"
+                      disabled={!customAmount || Number(customAmount) < 1}
+                      onClick={async () => {
+                        const amt = Math.floor(Number(customAmount));
+                        if (amt < 1) return;
+                        try {
+                          const order = await cloudService.createPayOrder('pkg_custom', amt);
+                          window.electron.shell.openExternal(order.payUrl);
+                          setRechargeOrderId(order.orderId);
+                          setRechargeStep('waiting');
+                          let attempts = 0;
+                          const timer = setInterval(async () => {
+                            attempts++;
+                            if (attempts > 200) { clearInterval(timer); setShowRechargeModal(false); return; }
+                            try {
+                              const status = await cloudService.pollPayStatus(order.orderId);
+                              if (status === 'paid') {
+                                clearInterval(timer);
+                                const newCredits = configService.getConfig().cloud?.credits ?? 0;
+                                setCloudCredits(newCredits);
+                                setRechargeStep('success');
+                              }
+                            } catch { /* retry */ }
+                          }, 3000);
+                          setRechargePollTimer(timer);
+                        } catch (err: any) {
+                          console.error('[recharge] failed:', err);
+                          setRechargeError(err?.message || i18nService.t('cloudRechargeFailed'));
+                          setRechargeStep('error');
+                        }
+                      }}
+                      className="text-sm font-medium text-claude-accent hover:opacity-70 disabled:opacity-30 transition-opacity shrink-0"
+                    >
+                      充值
+                    </button>
                   </div>
                 </div>
               )}

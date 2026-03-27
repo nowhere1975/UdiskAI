@@ -659,7 +659,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     onboardingClaimBtn: '领取奖励',
     onboardingClaiming: '领取中...',
     onboardingClaimSuccess: '领取成功！',
-    onboardingCreditsTitle: '积分兑换',
+    onboardingCreditsTitle: '积分充值',
     onboardingOwnKey: '我有自己的 API Key',
     onboardingSkip: '稍后再说',
     onboardingBack: '返回',

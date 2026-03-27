@@ -438,7 +438,7 @@ export const CONFIG_KEYS = {
 };
 
 // 模型提供商分类
-export const CHINA_PROVIDERS = ['moonshot', 'zhipu', 'minimax', 'custom'] as const;
+export const CHINA_PROVIDERS = ['volcengine', 'moonshot', 'zhipu', 'minimax', 'custom'] as const;
 export const GLOBAL_PROVIDERS = ['openai', 'gemini', 'anthropic', 'openrouter'] as const;
 export const EN_PRIORITY_PROVIDERS = ['openai', 'anthropic', 'gemini'] as const;
 
