@@ -310,6 +310,20 @@ const configureUserDataPath = (): void => {
   }
 };
 
+// On Windows, set the console code page to UTF-8 (65001) as early as possible.
+// Without this, the default GBK (936) code page causes git-bash to garble any
+// non-ASCII characters (e.g. Chinese) in paths, breaking file operations when
+// the app is installed in a directory with Chinese characters.
+// The old 启动.bat handled this with "chcp 65001 >nul" before launching the exe;
+// this replicates that fix inside the main process itself.
+if (process.platform === 'win32') {
+  try {
+    require('child_process').execFileSync('chcp.com', ['65001'], { stdio: 'ignore' });
+  } catch {
+    // Non-fatal: chcp.com may not be available in all environments.
+  }
+}
+
 configureUserDataPath();
 initLogger();
 
