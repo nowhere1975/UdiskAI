@@ -269,8 +269,8 @@ async function deductCredits(deviceId) {
 // App
 // ---------------------------------------------------------------------------
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // CORS — clients are Electron (file://) or localhost
 app.use((req, res, next) => {
