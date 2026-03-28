@@ -86,6 +86,96 @@ if (SERVER_ROLE === 'users') {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+// Anthropic ↔ OpenAI format conversion helpers (for /v1/messages proxy)
+// ---------------------------------------------------------------------------
+
+/** Anthropic tools → OpenAI tools */
+function convertToolsToOpenAI(anthropicTools) {
+  if (!Array.isArray(anthropicTools) || anthropicTools.length === 0) return undefined;
+  return anthropicTools.map(t => ({
+    type: 'function',
+    function: {
+      name: t.name,
+      description: t.description || '',
+      parameters: t.input_schema || { type: 'object', properties: {} },
+    },
+  }));
+}
+
+/** Anthropic messages → OpenAI messages (handles tool_use / tool_result blocks) */
+function convertMessagesToOpenAI(anthropicMessages, systemText) {
+  const result = [];
+  if (systemText) result.push({ role: 'system', content: systemText });
+
+  for (const msg of anthropicMessages) {
+    if (typeof msg.content === 'string') {
+      result.push({ role: msg.role, content: msg.content });
+      continue;
+    }
+    if (!Array.isArray(msg.content)) continue;
+
+    if (msg.role === 'user') {
+      const toolResults = msg.content.filter(b => b.type === 'tool_result');
+      const textBlocks  = msg.content.filter(b => b.type === 'text');
+      for (const tr of toolResults) {
+        const content = Array.isArray(tr.content)
+          ? tr.content.filter(b => b.type === 'text').map(b => b.text).join('')
+          : (typeof tr.content === 'string' ? tr.content : '');
+        result.push({ role: 'tool', tool_call_id: tr.tool_use_id, content });
+      }
+      if (textBlocks.length > 0) {
+        result.push({ role: 'user', content: textBlocks.map(b => b.text).join('') });
+      }
+    } else if (msg.role === 'assistant') {
+      const textBlocks    = msg.content.filter(b => b.type === 'text');
+      const toolUseBlocks = msg.content.filter(b => b.type === 'tool_use');
+      const openaiMsg = { role: 'assistant' };
+      if (textBlocks.length > 0) openaiMsg.content = textBlocks.map(b => b.text).join('');
+      if (toolUseBlocks.length > 0) {
+        openaiMsg.tool_calls = toolUseBlocks.map(tu => ({
+          id: tu.id,
+          type: 'function',
+          function: {
+            name: tu.name,
+            arguments: typeof tu.input === 'string' ? tu.input : JSON.stringify(tu.input || {}),
+          },
+        }));
+      }
+      result.push(openaiMsg);
+    }
+  }
+  return result;
+}
+
+/** OpenAI non-streaming response → Anthropic response */
+function convertResponseToAnthropic(openaiResp, modelName) {
+  const message = openaiResp.choices?.[0]?.message;
+  const content = [];
+  if (message?.content) content.push({ type: 'text', text: message.content });
+  if (Array.isArray(message?.tool_calls)) {
+    for (const tc of message.tool_calls) {
+      let input = {};
+      try { input = JSON.parse(tc.function.arguments || '{}'); } catch {}
+      content.push({ type: 'tool_use', id: tc.id, name: tc.function.name, input });
+    }
+  }
+  const stopReason = message?.tool_calls?.length > 0 ? 'tool_use' : 'end_turn';
+  return {
+    id: `msg_${Date.now()}`,
+    type: 'message',
+    role: 'assistant',
+    content,
+    model: modelName,
+    stop_reason: stopReason,
+    stop_sequence: null,
+    usage: {
+      input_tokens: openaiResp.usage?.prompt_tokens || 0,
+      output_tokens: openaiResp.usage?.completion_tokens || 0,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 function validateDeviceId(id) {
   return typeof id === 'string' && id.length >= 8 && id.length <= 128 && /^[\w\-]+$/.test(id);
 }
@@ -313,31 +403,25 @@ if (SERVER_ROLE === 'llm') {
       return res.status(429).json({ type: 'error', error: { type: 'rate_limit_error', message: 'Rate limited' } });
     }
 
-    // Convert Anthropic messages format → OpenAI format
-    const { messages: anthropicMessages = [], system, stream: isStream } = req.body;
-    const openaiMessages = [];
-    if (system) {
-      const systemText = Array.isArray(system)
-        ? system.filter(b => b.type === 'text').map(b => b.text).join('\n')
-        : system;
-      if (systemText) openaiMessages.push({ role: 'system', content: systemText });
-    }
-    for (const msg of anthropicMessages) {
-      let content = '';
-      if (typeof msg.content === 'string') {
-        content = msg.content;
-      } else if (Array.isArray(msg.content)) {
-        content = msg.content.filter(b => b.type === 'text').map(b => b.text).join('');
-      }
-      openaiMessages.push({ role: msg.role, content });
-    }
+    const { messages: anthropicMessages = [], system, tools: anthropicTools, stream: isStream } = req.body;
+
+    // Build system text
+    const systemText = Array.isArray(system)
+      ? system.filter(b => b.type === 'text').map(b => b.text).join('\n')
+      : (typeof system === 'string' ? system : '');
+
+    // Convert messages and tools to OpenAI format
+    const openaiMessages = convertMessagesToOpenAI(anthropicMessages, systemText);
+    const openaiTools = convertToolsToOpenAI(anthropicTools);
 
     const targetModel = CLOUD_MODEL_ID;
     const dsUrl = new URL('/v1/chat/completions', DEEPSEEK_BASE_URL);
     const proto = dsUrl.protocol === 'https:' ? https : http;
 
     if (isStream) {
-      const streamPayload = JSON.stringify({ model: targetModel, messages: openaiMessages, stream: true });
+      const streamBody = { model: targetModel, messages: openaiMessages, stream: true };
+      if (openaiTools) streamBody.tools = openaiTools;
+      const streamPayload = JSON.stringify(streamBody);
       const msgId = `msg_${Date.now()}`;
 
       const dsReq = proto.request({
@@ -369,8 +453,15 @@ if (SERVER_ROLE === 'llm') {
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('X-Accel-Buffering', 'no');
         res.write(`event: message_start\ndata: ${JSON.stringify({ type: 'message_start', message: { id: msgId, type: 'message', role: 'assistant', content: [], model: CLOUD_MODEL_NAME, stop_reason: null, stop_sequence: null, usage: { input_tokens: 0, output_tokens: 0 } } })}\n\n`);
-        res.write(`event: content_block_start\ndata: ${JSON.stringify({ type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } })}\n\n`);
         res.write(`event: ping\ndata: ${JSON.stringify({ type: 'ping' })}\n\n`);
+
+        // State for converting OpenAI streaming tool_calls → Anthropic content_block events
+        let textBlockStarted = false;
+        let textBlockIndex = 0;
+        // toolBlocks[openaiIndex] = { anthropicIndex, id, name, started }
+        const toolBlocks = {};
+        let nextBlockIndex = 0;
+        let finalStopReason = 'end_turn';
 
         let buffer = '';
         dsRes.on('data', chunk => {
@@ -383,9 +474,34 @@ if (SERVER_ROLE === 'llm') {
             if (jsonStr === '[DONE]') continue;
             try {
               const parsed = JSON.parse(jsonStr);
-              const delta = parsed.choices?.[0]?.delta?.content;
-              if (delta) {
-                res.write(`event: content_block_delta\ndata: ${JSON.stringify({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: delta } })}\n\n`);
+              const delta = parsed.choices?.[0]?.delta;
+              const finishReason = parsed.choices?.[0]?.finish_reason;
+              if (finishReason === 'tool_calls') finalStopReason = 'tool_use';
+
+              // Text delta
+              if (delta?.content) {
+                if (!textBlockStarted) {
+                  textBlockIndex = nextBlockIndex++;
+                  textBlockStarted = true;
+                  res.write(`event: content_block_start\ndata: ${JSON.stringify({ type: 'content_block_start', index: textBlockIndex, content_block: { type: 'text', text: '' } })}\n\n`);
+                }
+                res.write(`event: content_block_delta\ndata: ${JSON.stringify({ type: 'content_block_delta', index: textBlockIndex, delta: { type: 'text_delta', text: delta.content } })}\n\n`);
+              }
+
+              // Tool call deltas
+              if (Array.isArray(delta?.tool_calls)) {
+                for (const tc of delta.tool_calls) {
+                  const i = tc.index ?? 0;
+                  if (!toolBlocks[i]) {
+                    // First chunk for this tool call: has id and name
+                    const bIdx = nextBlockIndex++;
+                    toolBlocks[i] = { anthropicIndex: bIdx, id: tc.id || `toolu_${i}`, name: tc.function?.name || '', started: true };
+                    res.write(`event: content_block_start\ndata: ${JSON.stringify({ type: 'content_block_start', index: bIdx, content_block: { type: 'tool_use', id: toolBlocks[i].id, name: toolBlocks[i].name, input: {} } })}\n\n`);
+                  }
+                  if (tc.function?.arguments) {
+                    res.write(`event: content_block_delta\ndata: ${JSON.stringify({ type: 'content_block_delta', index: toolBlocks[i].anthropicIndex, delta: { type: 'input_json_delta', partial_json: tc.function.arguments } })}\n\n`);
+                  }
+                }
               }
             } catch { /* skip malformed */ }
           }
@@ -393,13 +509,23 @@ if (SERVER_ROLE === 'llm') {
 
         dsRes.on('end', async () => {
           if (res.writableEnded) return;
-          // Deduct credits after completion (fire-and-forget for the SDK caller)
           deductCredits(deviceId).catch(() => {});
-          res.write(`event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: 0 })}\n\n`);
-          res.write(`event: message_delta\ndata: ${JSON.stringify({ type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: CREDITS_PER_CHAT } })}\n\n`);
+          // Close all open blocks
+          if (textBlockStarted) {
+            res.write(`event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: textBlockIndex })}\n\n`);
+          }
+          for (const tb of Object.values(toolBlocks)) {
+            res.write(`event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: tb.anthropicIndex })}\n\n`);
+          }
+          // If no blocks were opened at all (e.g. empty response), open+close a text block
+          if (!textBlockStarted && Object.keys(toolBlocks).length === 0) {
+            res.write(`event: content_block_start\ndata: ${JSON.stringify({ type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } })}\n\n`);
+            res.write(`event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: 0 })}\n\n`);
+          }
+          res.write(`event: message_delta\ndata: ${JSON.stringify({ type: 'message_delta', delta: { stop_reason: finalStopReason, stop_sequence: null }, usage: { output_tokens: CREDITS_PER_CHAT } })}\n\n`);
           res.write(`event: message_stop\ndata: ${JSON.stringify({ type: 'message_stop' })}\n\n`);
           res.end();
-          console.debug(`[v1/messages/stream] deducted ${CREDITS_PER_CHAT} credits for device`);
+          console.debug(`[v1/messages/stream] stop_reason=${finalStopReason}, tool_calls=${Object.keys(toolBlocks).length}`);
         });
       });
 
@@ -417,7 +543,9 @@ if (SERVER_ROLE === 'llm') {
       dsReq.end();
 
     } else {
-      const payload = JSON.stringify({ model: targetModel, messages: openaiMessages, stream: false });
+      const body = { model: targetModel, messages: openaiMessages, stream: false };
+      if (openaiTools) body.tools = openaiTools;
+      const payload = JSON.stringify(body);
       const options = {
         hostname: dsUrl.hostname,
         path: dsUrl.pathname,
@@ -429,31 +557,21 @@ if (SERVER_ROLE === 'llm') {
         },
       };
       const dsReq = proto.request(options, dsRes => {
-        let body = '';
-        dsRes.on('data', c => { body += c; });
+        let respBody = '';
+        dsRes.on('data', c => { respBody += c; });
         dsRes.on('end', async () => {
           if (dsRes.statusCode !== 200) {
             return res.status(502).json({ type: 'error', error: { type: 'api_error', message: 'Upstream error' } });
           }
           let parsed;
-          try { parsed = JSON.parse(body); } catch {
+          try { parsed = JSON.parse(respBody); } catch {
             return res.status(502).json({ type: 'error', error: { type: 'api_error', message: 'Upstream parse error' } });
           }
           deductCredits(deviceId).catch(() => {});
-          const text = parsed.choices?.[0]?.message?.content || '';
-          const anthropicResp = {
-            id: `msg_${Date.now()}`,
-            type: 'message',
-            role: 'assistant',
-            content: [{ type: 'text', text }],
-            model: CLOUD_MODEL_NAME,
-            stop_reason: 'end_turn',
-            stop_sequence: null,
-            usage: { input_tokens: parsed.usage?.prompt_tokens || 0, output_tokens: parsed.usage?.completion_tokens || 0 },
-          };
+          const anthropicResp = convertResponseToAnthropic(parsed, CLOUD_MODEL_NAME);
           res.setHeader('X-Credits-Used', CREDITS_PER_CHAT);
           res.json(anthropicResp);
-          console.debug(`[v1/messages] deducted ${CREDITS_PER_CHAT} credits for device`);
+          console.debug(`[v1/messages] stop_reason=${anthropicResp.stop_reason}`);
         });
       });
 
