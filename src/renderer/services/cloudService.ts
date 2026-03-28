@@ -271,7 +271,7 @@ class CloudService {
 
   private getCloudConfig() {
     const config = configService.getConfig();
-    const cloud = config.cloud ?? { enabled: false, deviceId: '', credits: 0, lastSyncAt: 0 };
+    const cloud = config.cloud ?? { enabled: false, deviceId: '', credits: 0, lastSyncAt: 0, modelId: '', modelName: '' };
     // chatServerUrl → LLM relay (also used by claudeSettings.ts as baseURL)
     // userServerUrl → user management (auth, credits, payment)
     return { ...cloud, serverUrl: CHAT_SERVER_URL, chatServerUrl: CHAT_SERVER_URL, userServerUrl: USER_SERVER_URL };
