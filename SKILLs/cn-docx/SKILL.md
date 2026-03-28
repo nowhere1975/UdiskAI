@@ -476,8 +476,4 @@ echo '{
 
 ## 依赖
 
-```bash
-cd {SKILL_DIR} && npm install   # 仅需执行一次
-```
-
-Node.js ≥ 16，无其他运行时依赖。`docx` 版本已锁定，升级前务必先跑 `node test.js` 验证字体渲染正常。
+Node.js ≥ 16，`docx` 库已随应用预装，无需手动执行 `npm install`。`docx` 版本已锁定，升级前务必先跑 `node test.js` 验证字体渲染正常。
