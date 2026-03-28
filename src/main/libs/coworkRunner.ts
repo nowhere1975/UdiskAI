@@ -2733,6 +2733,10 @@ export class CoworkRunner extends EventEmitter {
           ? (toolInputRaw as Record<string, unknown>)
           : { value: toolInputRaw };
         const toolUseId = typeof record.id === 'string' ? record.id : null;
+        const toolInputSize = JSON.stringify(toolInputRaw).length;
+        if (toolInputSize > 10_000) {
+          console.warn(`[CoworkRunner] Large tool_use input: tool=${toolName} size=${toolInputSize} chars`);
+        }
 
         const message = this.store.addMessage(sessionId, {
           type: 'tool_use',
@@ -2751,6 +2755,10 @@ export class CoworkRunner extends EventEmitter {
         flushTextParts();
         const content = this.formatToolResultContent(record);
         const isError = Boolean(record.is_error);
+        const rawResultSize = JSON.stringify(record.content ?? '').length;
+        if (rawResultSize > 10_000) {
+          console.warn(`[CoworkRunner] Large tool_result: size=${rawResultSize} chars`);
+        }
         const message = this.store.addMessage(sessionId, {
           type: 'tool_result',
           content,
