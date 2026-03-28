@@ -472,44 +472,50 @@ if (SERVER_ROLE === 'llm') {
             if (!line.startsWith('data: ')) continue;
             const jsonStr = line.slice(6).trim();
             if (jsonStr === '[DONE]') continue;
+            let delta;
             try {
               const parsed = JSON.parse(jsonStr);
-              const delta = parsed.choices?.[0]?.delta;
+              delta = parsed.choices?.[0]?.delta;
               const finishReason = parsed.choices?.[0]?.finish_reason;
               if (finishReason === 'tool_calls') finalStopReason = 'tool_use';
+            } catch { /* skip malformed JSON */ }
 
-              // Text delta
-              if (delta?.content) {
-                if (!textBlockStarted) {
-                  textBlockIndex = nextBlockIndex++;
-                  textBlockStarted = true;
-                  res.write(`event: content_block_start\ndata: ${JSON.stringify({ type: 'content_block_start', index: textBlockIndex, content_block: { type: 'text', text: '' } })}\n\n`);
-                }
-                res.write(`event: content_block_delta\ndata: ${JSON.stringify({ type: 'content_block_delta', index: textBlockIndex, delta: { type: 'text_delta', text: delta.content } })}\n\n`);
-              }
+            if (!delta) continue;
 
-              // Tool call deltas
-              if (Array.isArray(delta?.tool_calls)) {
-                for (const tc of delta.tool_calls) {
-                  const i = tc.index ?? 0;
-                  if (!toolBlocks[i]) {
-                    // First chunk for this tool call: has id and name
-                    const bIdx = nextBlockIndex++;
-                    toolBlocks[i] = { anthropicIndex: bIdx, id: tc.id || `toolu_${i}`, name: tc.function?.name || '', started: true };
-                    res.write(`event: content_block_start\ndata: ${JSON.stringify({ type: 'content_block_start', index: bIdx, content_block: { type: 'tool_use', id: toolBlocks[i].id, name: toolBlocks[i].name, input: {} } })}\n\n`);
-                  }
-                  if (tc.function?.arguments) {
-                    res.write(`event: content_block_delta\ndata: ${JSON.stringify({ type: 'content_block_delta', index: toolBlocks[i].anthropicIndex, delta: { type: 'input_json_delta', partial_json: tc.function.arguments } })}\n\n`);
-                  }
+            // Text delta
+            if (delta.content) {
+              if (!textBlockStarted) {
+                textBlockIndex = nextBlockIndex++;
+                textBlockStarted = true;
+                res.write(`event: content_block_start\ndata: ${JSON.stringify({ type: 'content_block_start', index: textBlockIndex, content_block: { type: 'text', text: '' } })}\n\n`);
+              }
+              res.write(`event: content_block_delta\ndata: ${JSON.stringify({ type: 'content_block_delta', index: textBlockIndex, delta: { type: 'text_delta', text: delta.content } })}\n\n`);
+            }
+
+            // Tool call deltas — separate from JSON parse try/catch so argument writes are never silently dropped
+            if (Array.isArray(delta.tool_calls)) {
+              for (const tc of delta.tool_calls) {
+                const i = tc.index ?? 0;
+                if (!toolBlocks[i]) {
+                  // First chunk for this tool call: has id and name
+                  const bIdx = nextBlockIndex++;
+                  toolBlocks[i] = { anthropicIndex: bIdx, id: tc.id || `toolu_${i}`, name: tc.function?.name || '', started: true };
+                  res.write(`event: content_block_start\ndata: ${JSON.stringify({ type: 'content_block_start', index: bIdx, content_block: { type: 'tool_use', id: toolBlocks[i].id, name: toolBlocks[i].name, input: {} } })}\n\n`);
+                }
+                if (tc.function?.arguments) {
+                  res.write(`event: content_block_delta\ndata: ${JSON.stringify({ type: 'content_block_delta', index: toolBlocks[i].anthropicIndex, delta: { type: 'input_json_delta', partial_json: tc.function.arguments } })}\n\n`);
                 }
               }
-            } catch { /* skip malformed */ }
+            }
           }
         });
 
         dsRes.on('end', async () => {
           if (res.writableEnded) return;
           deductCredits(deviceId).catch(() => {});
+          // DeepSeek may send finish_reason: 'stop' even when making tool calls;
+          // force tool_use if we collected any tool blocks
+          if (Object.keys(toolBlocks).length > 0) finalStopReason = 'tool_use';
           // Close all open blocks
           if (textBlockStarted) {
             res.write(`event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: textBlockIndex })}\n\n`);
