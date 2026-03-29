@@ -1199,6 +1199,69 @@ export class SkillManager {
   }
 
   /**
+   * Check Server A for skill updates and download any that are newer than local versions.
+   * Runs non-blocking in the background; errors are logged and ignored.
+   */
+  async checkRemoteSkillUpdates(): Promise<void> {
+    const SKILLS_SERVER = 'http://1.14.96.63:3000';
+    const manifestUrl = `${SKILLS_SERVER}/skills/manifest.json`;
+
+    let manifest: Record<string, string>;
+    try {
+      const response = await session.defaultSession.fetch(manifestUrl, {
+        method: 'GET',
+        headers: { 'User-Agent': 'UdiskAI Skill Updater' },
+      });
+      if (!response.ok) {
+        console.warn(`[skills] Remote manifest fetch failed: ${response.status}`);
+        return;
+      }
+      manifest = await response.json() as Record<string, string>;
+    } catch (error) {
+      console.debug('[skills] Remote skill update check skipped (no network):', error);
+      return;
+    }
+
+    const userRoot = this.ensureSkillsRoot();
+    const os = require('os');
+
+    for (const [id, remoteVersion] of Object.entries(manifest)) {
+      const localDir = path.join(userRoot, id);
+      const localVersion = this.getSkillVersion(localDir) || '0.0.0';
+      if (compareVersions(remoteVersion, localVersion) <= 0) continue;
+
+      console.log(`[skills] Updating skill "${id}" from v${localVersion} to v${remoteVersion}`);
+      const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), `udiskai-skill-${id}-`));
+      try {
+        const zipUrl = `${SKILLS_SERVER}/skills/${id}.zip`;
+        const extractedDir = await downloadZipUrl(zipUrl, tempRoot);
+
+        // Preserve .env before overwrite
+        const envPath = path.join(localDir, '.env');
+        let envBackup: Buffer | null = null;
+        if (fs.existsSync(envPath)) {
+          envBackup = fs.readFileSync(envPath);
+        }
+
+        if (fs.existsSync(localDir)) {
+          fs.rmSync(localDir, { recursive: true, force: true });
+        }
+        cpRecursiveSync(extractedDir, localDir, { dereference: true, force: true });
+
+        if (envBackup !== null) {
+          fs.writeFileSync(envPath, envBackup);
+        }
+
+        console.log(`[skills] Updated skill "${id}" to v${remoteVersion}`);
+      } catch (error) {
+        console.warn(`[skills] Failed to update skill "${id}":`, error);
+      } finally {
+        try { fs.rmSync(tempRoot, { recursive: true, force: true }); } catch { /* ignore */ }
+      }
+    }
+  }
+
+  /**
    * Check if a skill's runtime is healthy by comparing with bundled version.
    * Returns false if bundled has dependencies but target doesn't.
    */

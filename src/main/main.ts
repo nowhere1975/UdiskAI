@@ -2629,6 +2629,11 @@ if (!gotTheLock) {
       console.error('[Main] initApp: syncBundledSkillsToUserData failed:', error);
     }
 
+    // Non-blocking: check Server A for skill updates in the background.
+    manager.checkRemoteSkillUpdates().catch((error) => {
+      console.warn('[Main] initApp: checkRemoteSkillUpdates failed:', error);
+    });
+
     try {
       const runtimeResult = await ensurePythonRuntimeReady();
       if (!runtimeResult.success) {
