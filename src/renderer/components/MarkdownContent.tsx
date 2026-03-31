@@ -209,7 +209,11 @@ const CodeBlock: React.FC<any> = ({ node, className, children, ...props }) => {
   const [isCopied, setIsCopied] = useState(false);
   const copyTimeoutRef = useRef<number | null>(null);
   const isDark = useIsDark();
-  const highlighterStyle = isDark ? oneDark : oneLight;
+  const highlighterStyle = isDark ? oneDark : {
+    ...oneLight,
+    'pre[class*="language-"]': { ...(oneLight as Record<string, React.CSSProperties>)['pre[class*="language-"]'], background: '#f0f2f5' },
+    'code[class*="language-"]': { ...(oneLight as Record<string, React.CSSProperties>)['code[class*="language-"]'], background: '#f0f2f5' },
+  };
 
   useEffect(() => () => {
     if (copyTimeoutRef.current != null) {
