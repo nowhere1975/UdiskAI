@@ -208,7 +208,7 @@ const McpManager: React.FC = () => {
 
   const handleOpenEditForm = (server: McpServerConfig) => {
     setEditingServer(server);
-    setInstallingRegistry(null);
+    setInstallingRegistry(getRegistryEntryForServer(server) ?? null);
     setIsFormOpen(true);
   };
 
