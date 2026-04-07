@@ -63,7 +63,7 @@ async function callMinerUAPI(filePath: string, mineruApiKey: string): Promise<st
   const fetch = (await import('electron')).net.fetch;
 
   const form = new FormData();
-  form.append('file', fs.createReadStream(filePath), path.basename(filePath));
+  form.append('file', fs.readFileSync(filePath), path.basename(filePath));
   form.append('output_format', 'markdown');
 
   const response = await fetch('https://mineru.net/api/v4/extract/upload', {
