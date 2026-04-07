@@ -6,6 +6,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import type { PermissionResult } from '@anthropic-ai/claude-agent-sdk';
 import type { CoworkStore, CoworkMessage, CoworkExecutionMode } from '../coworkStore';
+import type { KBManager } from '../kb';
 import { getClaudeCodePath, getCurrentApiConfig } from './claudeSettings';
 import { loadClaudeSdk } from './claudeSdk';
 import { getElectronNodeRuntimePath, getEnhancedEnv, getEnhancedEnvWithTmpdir, getSkillsRoot } from './coworkUtil';
@@ -239,6 +240,8 @@ export class CoworkRunner extends EventEmitter {
   private turnMemoryQueueKeys: Set<string> = new Set();
   private lastTurnMemoryKeyBySession: Map<string, string> = new Map();
   private drainingTurnMemoryQueue = false;
+  private kbManager?: KBManager;
+
   private mcpServerProvider?: () => Array<{
     name: string;
     transportType: string;
@@ -249,9 +252,26 @@ export class CoworkRunner extends EventEmitter {
     headers?: Record<string, string>;
   }>;
 
-  constructor(store: CoworkStore) {
+  constructor(store: CoworkStore, kbManager?: KBManager) {
     super();
     this.store = store;
+    this.kbManager = kbManager;
+  }
+
+  private async buildKBContext(userMessage: string): Promise<{ context: string; chunksCount: number } | null> {
+    if (!this.kbManager) return null;
+    if (!this.kbManager.hasTriggerWord(userMessage)) return null;
+
+    const results = await this.kbManager.search(userMessage);
+    if (!results.length) return null;
+
+    const sections = results.map((r) => {
+      const fileName = r.file_path.split(/[/\\]/).pop() ?? r.file_path;
+      return `[来源：${fileName}]\n${r.text}`;
+    });
+
+    const context = `\n--- 知识库相关内容 ---\n${sections.join('\n\n')}\n--- 知识库内容结束 ---`;
+    return { context, chunksCount: results.length };
   }
 
   setMcpServerProvider(provider: () => Array<{
@@ -1501,6 +1521,12 @@ export class CoworkRunner extends EventEmitter {
         effectivePrompt = this.injectLocalHistoryPrompt(sessionId, prompt, effectivePrompt);
       }
 
+      const kbContext = await this.buildKBContext(prompt);
+      if (kbContext) {
+        effectivePrompt = effectivePrompt + kbContext.context;
+        console.log(`[CoworkRunner] injected KB context: ${kbContext.chunksCount} chunks`);
+      }
+
       await this.runClaudeCode(activeSession, effectivePrompt, sessionCwd, effectiveSystemPrompt, options.imageAttachments);
     } catch (error) {
       console.error('Cowork session error:', error);
@@ -1585,7 +1611,14 @@ export class CoworkRunner extends EventEmitter {
 
     try {
       const promptPrefix = this.buildPromptPrefix();
-      const effectivePrompt = promptPrefix ? `${promptPrefix}\n\n---\n\n${prompt}` : prompt;
+      let effectivePrompt = promptPrefix ? `${promptPrefix}\n\n---\n\n${prompt}` : prompt;
+
+      const kbContext = await this.buildKBContext(prompt);
+      if (kbContext) {
+        effectivePrompt = effectivePrompt + kbContext.context;
+        console.log(`[CoworkRunner] injected KB context: ${kbContext.chunksCount} chunks`);
+      }
+
       await this.runClaudeCode(activeSession, effectivePrompt, sessionCwd, effectiveSystemPrompt, options.imageAttachments);
     } catch (error) {
       console.error('Cowork continue error:', error);

@@ -601,7 +601,7 @@ const getCoworkStore = () => {
 
 const getCoworkRunner = () => {
   if (!coworkRunner) {
-    coworkRunner = new CoworkRunner(getCoworkStore());
+    coworkRunner = new CoworkRunner(getCoworkStore(), kbManager ?? undefined);
 
     // Provide MCP server configuration to the runner
     coworkRunner.setMcpServerProvider(() => {
