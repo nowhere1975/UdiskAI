@@ -331,4 +331,27 @@ contextBridge.exposeInMainWorld('electron', {
         }>,
     },
   },
+  kb: {
+    addFolder: (folderPath: string) => ipcRenderer.invoke('kb:addFolder', folderPath),
+    removeFolder: (folderId: number) => ipcRenderer.invoke('kb:removeFolder', folderId),
+    clearFolderIndex: (folderId: number) => ipcRenderer.invoke('kb:clearFolderIndex', folderId),
+    listFolders: () => ipcRenderer.invoke('kb:listFolders'),
+    rebuild: () => ipcRenderer.invoke('kb:rebuild'),
+    getStats: () => ipcRenderer.invoke('kb:getStats'),
+    selectFolder: () => ipcRenderer.invoke('kb:selectFolder'),
+    getConfig: () => ipcRenderer.invoke('kb:getConfig'),
+    setConfig: (config: Record<string, string>) => ipcRenderer.invoke('kb:setConfig', config),
+    onIndexProgress: (callback: (progress: {
+      total: number;
+      done: number;
+      current_file: string;
+      errors: string[];
+    }) => void) => {
+      const handler = (_: Electron.IpcRendererEvent, progress: unknown) => callback(progress as {
+        total: number; done: number; current_file: string; errors: string[];
+      });
+      ipcRenderer.on('kb:onIndexProgress', handler);
+      return () => ipcRenderer.removeListener('kb:onIndexProgress', handler);
+    },
+  },
 });
