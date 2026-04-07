@@ -21,6 +21,8 @@ const INTERNAL_SECRET = process.env.INTERNAL_SECRET || '';  // shared between Se
 const DEEPSEEK_API_KEY  = process.env.DEEPSEEK_API_KEY || '';
 const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
 
+const ZHIPU_API_KEY     = process.env.ZHIPU_API_KEY || '';
+
 const CREDITS_PER_CHAT = parseInt(process.env.CREDITS_PER_CHAT || '20', 10);
 const CLOUD_MODEL_ID   = process.env.CLOUD_MODEL_ID   || 'deepseek-chat';
 const CLOUD_MODEL_NAME = process.env.CLOUD_MODEL_NAME || 'DeepSeek-V3';
@@ -611,6 +613,77 @@ if (SERVER_ROLE === 'llm') {
 }
 
 // ===========================================================================
+// KB ROUTES  (SERVER_ROLE === 'llm')  — Zhipu embedding + vision proxy
+// ===========================================================================
+if (SERVER_ROLE === 'llm') {
+
+  // POST /api/kb/embed  — proxy to Zhipu embedding-3
+  app.post('/api/kb/embed', async (req, res) => {
+    const { deviceId, texts } = req.body;
+    if (!validateDeviceId(deviceId)) return res.status(400).json({ error: 'INVALID_DEVICE_ID' });
+    if (!Array.isArray(texts) || texts.length === 0) return res.status(400).json({ error: 'INVALID_TEXTS' });
+    if (!checkRateLimit(deviceId)) return res.status(429).json({ error: 'RATE_LIMITED' });
+    if (!ZHIPU_API_KEY) return res.status(503).json({ error: 'EMBEDDING_NOT_CONFIGURED' });
+
+    try {
+      const zhipuRes = await fetch('https://open.bigmodel.cn/api/paas/v4/embeddings', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${ZHIPU_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'embedding-3', input: texts }),
+      });
+      if (!zhipuRes.ok) {
+        const errText = await zhipuRes.text();
+        console.warn('[kb/embed] Zhipu error:', zhipuRes.status, errText);
+        return res.status(502).json({ error: 'UPSTREAM_ERROR', detail: errText });
+      }
+      const json = await zhipuRes.json();
+      res.json({ data: json.data });
+    } catch (err) {
+      console.error('[kb/embed] request failed:', err);
+      res.status(500).json({ error: 'INTERNAL_ERROR' });
+    }
+  });
+
+  // POST /api/kb/describe  — proxy to Zhipu GLM-4V for image description
+  app.post('/api/kb/describe', async (req, res) => {
+    const { deviceId, imageBase64, mimeType } = req.body;
+    if (!validateDeviceId(deviceId)) return res.status(400).json({ error: 'INVALID_DEVICE_ID' });
+    if (!imageBase64 || !mimeType) return res.status(400).json({ error: 'INVALID_PARAMS' });
+    if (!checkRateLimit(deviceId)) return res.status(429).json({ error: 'RATE_LIMITED' });
+    if (!ZHIPU_API_KEY) return res.status(503).json({ error: 'VISION_NOT_CONFIGURED' });
+
+    try {
+      const zhipuRes = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${ZHIPU_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'glm-4v',
+          max_tokens: 512,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: `data:${mimeType};base64,${imageBase64}` } },
+              { type: 'text', text: '请描述图片内容，包括所有可见文字、图表数据、技术标注。如有文字请完整转录。用中文回答。' },
+            ],
+          }],
+        }),
+      });
+      if (!zhipuRes.ok) {
+        const errText = await zhipuRes.text();
+        console.warn('[kb/describe] Zhipu error:', zhipuRes.status, errText);
+        return res.status(502).json({ error: 'UPSTREAM_ERROR', detail: errText });
+      }
+      const json = await zhipuRes.json();
+      const description = json.choices?.[0]?.message?.content ?? '';
+      res.json({ description });
+    } catch (err) {
+      console.error('[kb/describe] request failed:', err);
+      res.status(500).json({ error: 'INTERNAL_ERROR' });
+    }
+  });
+}
+
+// ===========================================================================
 // USERS ROLE ROUTES  (SERVER_ROLE === 'users')
 // ===========================================================================
 if (SERVER_ROLE === 'users') {
@@ -786,6 +859,7 @@ app.listen(PORT, () => {
   console.log(`[server] UdiskAI server (${SERVER_ROLE}) running on port ${PORT}`);
   if (SERVER_ROLE === 'llm') {
     if (!DEEPSEEK_API_KEY) console.warn('[server] DEEPSEEK_API_KEY not set');
+    if (!ZHIPU_API_KEY) console.warn('[server] ZHIPU_API_KEY not set — KB embedding/vision disabled');
     if (!USER_SERVER_URL) console.warn('[server] USER_SERVER_URL not set — credit deduction disabled');
     if (!INTERNAL_SECRET) console.warn('[server] INTERNAL_SECRET not set — credit deduction disabled');
   }
