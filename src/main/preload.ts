@@ -353,5 +353,11 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.on('kb:onIndexProgress', handler);
       return () => ipcRenderer.removeListener('kb:onIndexProgress', handler);
     },
+    onKBRetrieval: (callback: (data: { sessionId: string; chunksCount: number; sources: string[] }) => void) => {
+      const handler = (_: Electron.IpcRendererEvent, data: unknown) =>
+        callback(data as { sessionId: string; chunksCount: number; sources: string[] });
+      ipcRenderer.on('kb:retrieval', handler);
+      return () => ipcRenderer.removeListener('kb:retrieval', handler);
+    },
   },
 });

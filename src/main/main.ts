@@ -603,6 +603,12 @@ const getCoworkRunner = () => {
   if (!coworkRunner) {
     coworkRunner = new CoworkRunner(getCoworkStore(), kbManager ?? undefined);
 
+    coworkRunner.setSendToWindows((channel, ...args) => {
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (!win.isDestroyed()) win.webContents.send(channel, ...args);
+      }
+    });
+
     // Provide MCP server configuration to the runner
     coworkRunner.setMcpServerProvider(() => {
       return getMcpStore().getEnabledServers();

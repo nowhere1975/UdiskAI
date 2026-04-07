@@ -258,7 +258,13 @@ export class CoworkRunner extends EventEmitter {
     this.kbManager = kbManager;
   }
 
-  private async buildKBContext(userMessage: string): Promise<{ context: string; chunksCount: number } | null> {
+  private sendToWindows?: (channel: string, ...args: unknown[]) => void;
+
+  setSendToWindows(fn: (channel: string, ...args: unknown[]) => void): void {
+    this.sendToWindows = fn;
+  }
+
+  private async buildKBContext(userMessage: string, sessionId: string): Promise<{ context: string; chunksCount: number } | null> {
     if (!this.kbManager) return null;
     if (!this.kbManager.hasTriggerWord(userMessage)) return null;
 
@@ -269,6 +275,14 @@ export class CoworkRunner extends EventEmitter {
       const fileName = r.file_path.split(/[/\\]/).pop() ?? r.file_path;
       return `[来源：${fileName}]\n${r.text}`;
     });
+
+    if (this.sendToWindows) {
+      this.sendToWindows('kb:retrieval', {
+        sessionId,
+        chunksCount: results.length,
+        sources: results.map((r) => r.file_path.split(/[/\\]/).pop()),
+      });
+    }
 
     const context = `\n--- 知识库相关内容 ---\n${sections.join('\n\n')}\n--- 知识库内容结束 ---`;
     return { context, chunksCount: results.length };
@@ -1521,7 +1535,7 @@ export class CoworkRunner extends EventEmitter {
         effectivePrompt = this.injectLocalHistoryPrompt(sessionId, prompt, effectivePrompt);
       }
 
-      const kbContext = await this.buildKBContext(prompt);
+      const kbContext = await this.buildKBContext(prompt, sessionId);
       if (kbContext) {
         effectivePrompt = effectivePrompt + kbContext.context;
         console.log(`[CoworkRunner] injected KB context: ${kbContext.chunksCount} chunks`);
@@ -1613,7 +1627,7 @@ export class CoworkRunner extends EventEmitter {
       const promptPrefix = this.buildPromptPrefix();
       let effectivePrompt = promptPrefix ? `${promptPrefix}\n\n---\n\n${prompt}` : prompt;
 
-      const kbContext = await this.buildKBContext(prompt);
+      const kbContext = await this.buildKBContext(prompt, sessionId);
       if (kbContext) {
         effectivePrompt = effectivePrompt + kbContext.context;
         console.log(`[CoworkRunner] injected KB context: ${kbContext.chunksCount} chunks`);

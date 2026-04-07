@@ -226,6 +226,7 @@ interface IElectronAPI {
     getConfig: () => Promise<{ trigger_words: string; top_k: string; mineru_key: string; zhipu_key: string }>;
     setConfig: (config: Record<string, string>) => Promise<void>;
     onIndexProgress: (callback: (progress: { total: number; done: number; current_file: string; errors: string[] }) => void) => () => void;
+    onKBRetrieval: (callback: (data: { sessionId: string; chunksCount: number; sources: string[] }) => void) => () => void;
   };
   mcp: {
     list: () => Promise<{ success: boolean; servers?: McpServerConfigIPC[]; error?: string }>;

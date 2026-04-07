@@ -68,4 +68,8 @@ export const kbService = {
   onIndexProgress(callback: (progress: KBIndexProgress) => void): () => void {
     return window.electron.kb.onIndexProgress(callback);
   },
+
+  onKBRetrieval(callback: (data: { sessionId: string; chunksCount: number; sources: string[] }) => void): () => void {
+    return window.electron.kb.onKBRetrieval(callback);
+  },
 };
