@@ -32,6 +32,8 @@ export default defineConfig({
                 if (staticExternals.includes(id)) return true;
                 if (id.startsWith('@larksuite/openclaw-lark-tools') || id.startsWith('@larksuite/openclaw-lark')) return true;
                 if (id.startsWith('@lancedb/') || id === 'chokidar') return true;
+                if (id.startsWith('@langchain/') || id === 'apache-arrow' || id === 'flatbuffers') return true;
+                if (id === 'xlsx' || id === 'node-stream-zip' || id === 'pdf-parse') return true;
                 return false;
               },
               output: {
@@ -86,7 +88,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ['electron', '@larksuite/openclaw-lark-tools', '@larksuite/openclaw-lark', '@lancedb/lancedb', 'chokidar'],
+    exclude: ['electron', '@larksuite/openclaw-lark-tools', '@larksuite/openclaw-lark', '@lancedb/lancedb', 'chokidar', '@langchain/textsplitters'],
     esbuildOptions: {
       define: {
         __VERSION__: JSON.stringify(katexVersion),
