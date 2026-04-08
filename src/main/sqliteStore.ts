@@ -19,12 +19,22 @@ const USER_MEMORIES_MIGRATION_KEY = 'userMemories.migration.v1.completed';
 // and passing the buffer directly to initSqlJs bypasses Emscripten's file loading,
 // which can fail or hang when the install path contains Chinese characters on Windows.
 function loadWasmBinary(): ArrayBuffer {
-  const wasmPath = app.isPackaged
-    ? path.join(
-        process.resourcesPath,
-        'app.asar.unpacked/node_modules/sql.js/dist/sql-wasm.wasm'
-      )
-    : path.join(app.getAppPath(), 'node_modules/sql.js/dist/sql-wasm.wasm');
+  let wasmPath: string;
+  if (app.isPackaged) {
+    // When asar is enabled, sql.js is in app.asar.unpacked; when asar is
+    // disabled (asar: false in electron-builder), it lives directly under app/.
+    const asarUnpackedPath = path.join(
+      process.resourcesPath,
+      'app.asar.unpacked/node_modules/sql.js/dist/sql-wasm.wasm'
+    );
+    const appDirPath = path.join(
+      app.getAppPath(),
+      'node_modules/sql.js/dist/sql-wasm.wasm'
+    );
+    wasmPath = fs.existsSync(asarUnpackedPath) ? asarUnpackedPath : appDirPath;
+  } else {
+    wasmPath = path.join(app.getAppPath(), 'node_modules/sql.js/dist/sql-wasm.wasm');
+  }
   const buf = fs.readFileSync(wasmPath);
   return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
 }

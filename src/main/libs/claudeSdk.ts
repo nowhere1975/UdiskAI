@@ -12,9 +12,18 @@ const CLAUDE_SDK_PATH_PARTS = ['@anthropic-ai', 'claude-agent-sdk'];
 
 function getClaudeSdkPath(): string {
   if (app.isPackaged) {
-    return join(
+    // When asar is enabled, the SDK is in app.asar.unpacked; when asar is
+    // disabled (asar: false in electron-builder), it lives directly under app/.
+    const asarUnpackedPath = join(
       process.resourcesPath,
       'app.asar.unpacked',
+      'node_modules',
+      ...CLAUDE_SDK_PATH_PARTS,
+      'sdk.mjs'
+    );
+    if (existsSync(asarUnpackedPath)) return asarUnpackedPath;
+    return join(
+      app.getAppPath(),
       'node_modules',
       ...CLAUDE_SDK_PATH_PARTS,
       'sdk.mjs'

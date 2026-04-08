@@ -820,7 +820,10 @@ const isNpmPackageSpec = (source: string): boolean => {
  */
 const resolveNpmCliJs = (): string | null => {
   const candidates = app.isPackaged
-    ? [path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'npm', 'bin', 'npm-cli.js')]
+    ? [
+        path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'npm', 'bin', 'npm-cli.js'),
+        path.join(app.getAppPath(), 'node_modules', 'npm', 'bin', 'npm-cli.js'),
+      ]
     : [
         path.join(app.getAppPath(), 'node_modules', 'npm', 'bin', 'npm-cli.js'),
         path.join(process.cwd(), 'node_modules', 'npm', 'bin', 'npm-cli.js'),

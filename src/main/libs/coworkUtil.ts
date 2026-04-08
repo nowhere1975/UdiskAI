@@ -1140,7 +1140,11 @@ function applyPackagedEnvOverrides(env: Record<string, string | undefined>): voi
   // ELECTRON_RUN_AS_NODE=1 and point npx/npm to the bundled npm package.
   // This avoids relying on node_modules/.bin symlinks which don't work on
   // Windows cross-platform builds.
-  const npmBinDir = join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'npm', 'bin');
+  // When asar is enabled the SDK lives in app.asar.unpacked; when asar is
+  // disabled (asar: false in electron-builder) it lives directly in app/.
+  const npmBinDirAsarUnpacked = join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'npm', 'bin');
+  const npmBinDirApp = join(app.getAppPath(), 'node_modules', 'npm', 'bin');
+  const npmBinDir = existsSync(npmBinDirAsarUnpacked) ? npmBinDirAsarUnpacked : npmBinDirApp;
   coworkLog('INFO', 'applyPackagedEnvOverrides', `npmBinDir=${npmBinDir}, exists=${existsSync(npmBinDir)}`);
 
   // Set env var so .cmd shims can reference npmBinDir without hardcoding
@@ -1178,6 +1182,7 @@ function applyPackagedEnvOverrides(env: Record<string, string | undefined>): voi
   const nodePaths = [
     join(resourcesPath, 'app.asar', 'node_modules'),
     join(resourcesPath, 'app.asar.unpacked', 'node_modules'),
+    join(app.getAppPath(), 'node_modules'),
   ].filter((nodePath) => existsSync(nodePath));
 
   if (nodePaths.length > 0) {

@@ -1,4 +1,5 @@
 import { join } from 'path';
+import { existsSync } from 'fs';
 import { app } from 'electron';
 import type { SqliteStore } from '../sqliteStore';
 import type { CoworkApiConfig } from './coworkConfigStore';
@@ -72,10 +73,12 @@ const getStore = (): SqliteStore | null => {
 
 export function getClaudeCodePath(): string {
   if (app.isPackaged) {
-    return join(
+    const asarUnpackedPath = join(
       process.resourcesPath,
       'app.asar.unpacked/node_modules/@anthropic-ai/claude-agent-sdk/cli.js'
     );
+    if (existsSync(asarUnpackedPath)) return asarUnpackedPath;
+    return join(app.getAppPath(), 'node_modules/@anthropic-ai/claude-agent-sdk/cli.js');
   }
 
   // In development, try to find the SDK in the project root node_modules
