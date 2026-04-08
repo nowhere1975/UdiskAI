@@ -88,6 +88,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
     setClaiming(true);
     try {
       await cloudService.enable();
+      // Sync from server to get the actual credits value after registration
+      await cloudService.syncCredits();
       setClaimed(true);
     } finally {
       setClaiming(false);

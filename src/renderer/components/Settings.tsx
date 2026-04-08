@@ -2096,9 +2096,11 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
                         setIsTogglingCloud(true);
                         try {
                           await cloudService.enable();
+                          // Sync from server to get the actual credits value
+                          const credits = await cloudService.syncCredits();
                           setCloudEnabled(true);
+                          setCloudCredits(credits);
                           const cfg = configService.getConfig().cloud;
-                          setCloudCredits(cfg?.credits ?? 0);
                           setCloudDeviceId(cfg?.deviceId ?? '');
                           const { modelId, modelName } = cloudService.getCachedModel();
                           dispatch(setAvailableModels([{ id: modelId, name: modelName, providerKey: 'cloud', supportsImage: false }]));
