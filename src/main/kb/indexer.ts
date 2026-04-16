@@ -15,7 +15,7 @@ const CHUNK_OVERLAP = 100;
 const ROWS_PER_CHUNK = 5;         // Excel rows per chunk (keep chunks within embedding token limits)
 const EMBED_BATCH_SIZE = 16;      // embedding batch size
 const MAX_CHUNK_CHARS = 2000;     // Hard cap per chunk before sending to embedding API
-const KB_SERVER_URL = 'http://1.14.96.63:3000'; // LLM relay server
+const ZHIPU_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4';
 
 // ── Pure helpers (exported for testing) ─────────────────────────────────────
 
@@ -66,7 +66,7 @@ function fileHash(filePath: string): string {
 async function parsePptx(filePath: string): Promise<string> {
   // Use node-stream-zip for random-access reads — handles large PPTX files
   // with embedded videos without loading the entire archive into memory.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+
   const StreamZip = require('node-stream-zip') as { async: new (opts: { file: string }) => NodeStreamZipAsync };
 
   interface NodeStreamZipAsync {
@@ -101,7 +101,7 @@ async function parsePptx(filePath: string): Promise<string> {
 
 /** Extract plain text from a DOCX file by reading word/document.xml from the ZIP. */
 async function parseDocx(filePath: string): Promise<string> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+
   const StreamZip = require('node-stream-zip') as { async: new (opts: { file: string }) => { entryData(name: string): Promise<Buffer>; close(): Promise<void> } };
   const zip = new StreamZip.async({ file: filePath });
   try {
@@ -121,11 +121,11 @@ const IMAGE_MIME: Record<string, string> = {
 };
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
 
-/** Describe an image via Server A → Zhipu GLM-4V. */
-async function describeImageWithZhipu(filePath: string, deviceId: string): Promise<string> {
+/** Describe an image via Zhipu GLM-4V using the user's Zhipu API key. */
+async function describeImageWithZhipu(filePath: string, zhipuApiKey: string): Promise<string> {
   const stat = fs.statSync(filePath);
   if (stat.size > MAX_IMAGE_BYTES) {
-    throw new Error(`image too large (${Math.round(stat.size / 1024)}KB > 4096KB limit)`);
+    throw new Error(`image too large (${Math.round(stat.size / 1024)}KB > 10240KB limit)`);
   }
 
   const fetch = (await import('electron')).net.fetch;
@@ -133,41 +133,57 @@ async function describeImageWithZhipu(filePath: string, deviceId: string): Promi
   const mimeType = IMAGE_MIME[ext] ?? 'image/jpeg';
   const imageBase64 = fs.readFileSync(filePath).toString('base64');
 
-  const resp = await fetch(`${KB_SERVER_URL}/api/kb/describe`, {
+  const resp = await fetch(`${ZHIPU_BASE_URL}/chat/completions`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ deviceId, imageBase64, mimeType }),
+    headers: {
+      'Authorization': `Bearer ${zhipuApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'glm-4v',
+      max_tokens: 512,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url: `data:${mimeType};base64,${imageBase64}` } },
+          { type: 'text', text: '请描述图片内容，包括所有可见文字、图表数据、技术标注。如有文字请完整转录。用中文回答。' },
+        ],
+      }],
+    }),
   });
 
   if (!resp.ok) {
-    throw new Error(`KB describe error ${resp.status}: ${await resp.text()}`);
+    throw new Error(`Zhipu vision error ${resp.status}: ${await resp.text()}`);
   }
 
-  const json = await resp.json() as { description?: string };
-  return json.description ?? '';
+  const json = await resp.json() as { choices?: Array<{ message?: { content?: string } }> };
+  return json.choices?.[0]?.message?.content ?? '';
 }
 
 /** Extract plain text from a PDF file. */
 async function parsePdf(filePath: string): Promise<string> {
   // pdf-parse v2: class-based API, accepts a local file path via `url`
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+
   const { PDFParse } = require('pdf-parse') as { PDFParse: new (opts: { url: string }) => { getText(): Promise<{ text: string }> } };
   const parser = new PDFParse({ url: filePath });
   const result = await parser.getText();
   return result.text;
 }
 
-async function callEmbeddingBatch(texts: string[], deviceId: string): Promise<number[][]> {
+async function callEmbeddingBatch(texts: string[], zhipuApiKey: string): Promise<number[][]> {
   const fetch = (await import('electron')).net.fetch;
 
-  const response = await fetch(`${KB_SERVER_URL}/api/kb/embed`, {
+  const response = await fetch(`${ZHIPU_BASE_URL}/embeddings`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ deviceId, texts }),
+    headers: {
+      'Authorization': `Bearer ${zhipuApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ model: 'embedding-3', input: texts }),
   });
 
   if (!response.ok) {
-    throw new Error(`KB embed error ${response.status}: ${await response.text()}`);
+    throw new Error(`Zhipu embedding error ${response.status}: ${await response.text()}`);
   }
 
   const json = await response.json() as { data: Array<{ embedding: number[] }> };
@@ -175,17 +191,17 @@ async function callEmbeddingBatch(texts: string[], deviceId: string): Promise<nu
 }
 
 /** Call embedding API for a batch; on failure, fall back to one-by-one to skip bad chunks. */
-async function callEmbedding(texts: string[], deviceId: string): Promise<(number[] | null)[]> {
+async function callEmbedding(texts: string[], zhipuApiKey: string): Promise<(number[] | null)[]> {
   const safeTexts = texts.map((t) => t.length > MAX_CHUNK_CHARS ? t.slice(0, MAX_CHUNK_CHARS) : t);
 
   try {
-    return await callEmbeddingBatch(safeTexts, deviceId);
+    return await callEmbeddingBatch(safeTexts, zhipuApiKey);
   } catch (batchError) {
     console.warn(`[KBIndexer] batch embedding failed, retrying individually: ${batchError instanceof Error ? batchError.message : batchError}`);
     const results: (number[] | null)[] = [];
     for (let i = 0; i < safeTexts.length; i++) {
       try {
-        const [vec] = await callEmbeddingBatch([safeTexts[i]], deviceId);
+        const [vec] = await callEmbeddingBatch([safeTexts[i]], zhipuApiKey);
         results.push(vec);
       } catch (singleError) {
         console.warn(`[KBIndexer] skipping chunk ${i} (${safeTexts[i].length} chars): ${singleError instanceof Error ? singleError.message : singleError}`);
@@ -284,14 +300,14 @@ export class KBIndexer extends EventEmitter {
   }
 
   private async indexFile(filePath: string, folderId: number, errors: string[]): Promise<void> {
-    const appConfig = this.store.get<{ cloud?: { deviceId?: string } }>('app_config');
-    const deviceId = appConfig?.cloud?.deviceId?.trim() ?? '';
+    const appConfig = this.store.get<{ providers?: Record<string, { apiKey?: string }> }>('app_config');
+    const zhipuApiKey = appConfig?.providers?.zhipu?.apiKey?.trim() ?? '';
 
-    if (!deviceId) {
-      const msg = `[KB] skipping ${path.basename(filePath)}: cloud service not registered`;
+    if (!zhipuApiKey) {
+      const msg = `[KB] skipping ${path.basename(filePath)}: Zhipu API key not configured`;
       console.warn(msg);
       errors.push(msg);
-      this.store.upsertKBDoc({ folder_id: folderId, file_path: filePath, status: 'error', error_msg: 'Cloud service not registered' });
+      this.store.upsertKBDoc({ folder_id: folderId, file_path: filePath, status: 'error', error_msg: 'Zhipu API key not configured' });
       return;
     }
 
@@ -312,7 +328,7 @@ export class KBIndexer extends EventEmitter {
     this.store.upsertKBDoc({ folder_id: folderId, file_path: filePath, file_hash: hash, status: 'indexing' });
 
     try {
-      const rawChunks = await this.extractChunks(filePath, deviceId);
+      const rawChunks = await this.extractChunks(filePath, zhipuApiKey);
       const chunks = rawChunks.filter((c) => c.trim().length > 0);
       if (!chunks.length) {
         this.store.upsertKBDoc({ folder_id: folderId, file_path: filePath, file_hash: hash, status: 'done', chunk_count: 0 });
@@ -322,7 +338,7 @@ export class KBIndexer extends EventEmitter {
       const allVectors: (number[] | null)[] = [];
       for (let i = 0; i < chunks.length; i += EMBED_BATCH_SIZE) {
         const batch = chunks.slice(i, i + EMBED_BATCH_SIZE);
-        const vectors = await callEmbedding(batch, deviceId);
+        const vectors = await callEmbedding(batch, zhipuApiKey);
         allVectors.push(...vectors);
         await new Promise<void>((resolve) => setImmediate(resolve));
       }
@@ -349,14 +365,14 @@ export class KBIndexer extends EventEmitter {
     }
   }
 
-  private async extractChunks(filePath: string, deviceId: string): Promise<string[]> {
+  private async extractChunks(filePath: string, zhipuApiKey: string): Promise<string[]> {
     const ext = path.extname(filePath).toLowerCase();
 
     if (ext === '.xlsx' || ext === '.xls') {
       return parseExcelToChunks(filePath);
     }
 
-    if (ext === '.md') {
+    if (ext === '.md' || ext === '.txt') {
       const text = fs.readFileSync(filePath, 'utf-8');
       return chunkMarkdown(text);
     }
@@ -377,7 +393,7 @@ export class KBIndexer extends EventEmitter {
     }
 
     if (IMAGE_EXTENSIONS.has(ext)) {
-      const description = await describeImageWithZhipu(filePath, deviceId);
+      const description = await describeImageWithZhipu(filePath, zhipuApiKey);
       if (!description.trim()) return [];
       const fileName = path.basename(filePath);
       return [`[图片：${fileName}]\n${description}`];

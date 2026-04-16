@@ -84,33 +84,35 @@ export class KBStore {
   async sampleChunks(n: number): Promise<string[]> {
     if (!this.table) return [];
     try {
-      // Load all text chunks (skip vector column to keep memory low)
-      const rows = await this.table.query().select(['file_path', 'text']).toArray();
-      // Fisher-Yates shuffle for true random sampling across all files
+      // Cap the scan at n*10 rows to avoid loading the entire table for large KBs.
+      // Rows are returned in insertion order so we still get reasonable diversity.
+      const rows = await this.table.query()
+        .select(['file_path', 'text'])
+        .limit(n * 10)
+        .toArray();
+
+      // Fisher-Yates shuffle
       for (let i = rows.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [rows[i], rows[j]] = [rows[j], rows[i]];
       }
-      // Deduplicate by file to ensure diversity across documents
+      // One chunk per unique file first, then fill with extras
       const seen = new Set<string>();
-      const diverse: string[] = [];
+      const result: string[] = [];
       for (const r of rows) {
+        if (result.length >= n) break;
         const fp = r['file_path'] as string;
         if (!seen.has(fp)) {
           seen.add(fp);
-          diverse.push(r['text'] as string);
-          if (diverse.length >= n) break;
+          result.push(r['text'] as string);
         }
       }
-      // If not enough unique files, fill up with remaining shuffled chunks
-      if (diverse.length < n) {
-        for (const r of rows) {
-          if (diverse.length >= n) break;
-          const text = r['text'] as string;
-          if (!diverse.includes(text)) diverse.push(text);
-        }
+      for (const r of rows) {
+        if (result.length >= n) break;
+        const text = r['text'] as string;
+        if (!result.includes(text)) result.push(text);
       }
-      return diverse;
+      return result;
     } catch {
       return [];
     }

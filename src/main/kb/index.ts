@@ -1,4 +1,6 @@
 import { EventEmitter } from 'events';
+import path from 'path';
+import fs from 'fs';
 import type { BrowserWindow } from 'electron';
 import type { SqliteStore } from '../sqliteStore';
 import { KBStore } from './store';
@@ -6,16 +8,25 @@ import { KBIndexer, containsTriggerWord, callEmbeddingPublic } from './indexer';
 import { KBWatcher } from './watcher';
 import type { KBFolder, KBSearchResult, KBStats, KBIndexProgress } from './types';
 
+// The KB folder is always located at {userDataPath}/知识库.
+// This relative name is stored in kb_folders.path so the record is
+// drive-letter-independent. The absolute path is resolved at runtime.
+const KB_RELATIVE_DIR = '知识库';
+const ZHIPU_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4';
+
 export class KBManager extends EventEmitter {
   private store: SqliteStore;
   private kbStore: KBStore;
   private indexer: KBIndexer;
   private watcher: KBWatcher;
   private windows: Set<BrowserWindow> = new Set();
+  private userDataPath: string;
+  private folderId: number = -1;
 
   constructor(store: SqliteStore, userDataPath: string) {
     super();
     this.store = store;
+    this.userDataPath = userDataPath;
     this.kbStore = new KBStore(userDataPath);
     this.indexer = new KBIndexer(store, this.kbStore);
     this.watcher = new KBWatcher(this.indexer);
@@ -29,13 +40,33 @@ export class KBManager extends EventEmitter {
     });
   }
 
+  // Returns the absolute path to the KB folder on the current machine.
+  getKBFolderPath(): string {
+    return path.join(this.userDataPath, KB_RELATIVE_DIR);
+  }
+
   async init(): Promise<void> {
     await this.kbStore.init();
-    const folders = this.store.listKBFolders();
-    for (const folder of folders) {
-      this.watcher.watch(folder.id, folder.path);
+
+    // Ensure the KB directory exists on disk.
+    const absPath = this.getKBFolderPath();
+    fs.mkdirSync(absPath, { recursive: true });
+
+    // Migration: remove any old records that stored absolute paths, then
+    // ensure exactly one record exists with the relative path '知识库'.
+    const existing = this.store.listKBFolders();
+    const hasRelative = existing.some((f) => f.path === KB_RELATIVE_DIR);
+    if (!hasRelative) {
+      // Delete stale absolute-path records (and their docs).
+      for (const f of existing) {
+        this.store.removeKBFolder(f.id);
+      }
+      console.log('[KBManager] migrated kb_folders to relative path storage');
     }
-    console.log(`[KBManager] initialized with ${folders.length} watched folder(s)`);
+
+    this.folderId = this.store.addKBFolder(KB_RELATIVE_DIR);
+    this.watcher.watch(this.folderId, absPath);
+    console.log(`[KBManager] initialized, watching ${absPath}`);
   }
 
   registerWindow(win: BrowserWindow): void {
@@ -43,62 +74,28 @@ export class KBManager extends EventEmitter {
     win.on('closed', () => this.windows.delete(win));
   }
 
-  // ── Folder management ──────────────────────────────────────────────────────
-
-  addFolder(folderPath: string): KBFolder {
-    const id = this.store.addKBFolder(folderPath);
-    this.watcher.watch(id, folderPath);
-    console.log(`[KBManager] added folder ${folderPath}`);
-    return { id, path: folderPath, created_at: Date.now() };
-  }
-
-  removeFolder(folderId: number): void {
-    void this.watcher.unwatch(folderId);
-    // Cancel any queued-but-not-yet-started items for this folder
-    this.indexer.cancelFolder(folderId);
-    // Enqueue LanceDB chunk deletion for docs already indexed
-    const docs = this.store.listKBDocsByFolder(folderId);
-    for (const doc of docs) {
-      this.indexer.enqueue(doc.file_path, folderId, 'delete');
-    }
-    this.store.removeKBFolder(folderId);
-    console.log(`[KBManager] removed folder id=${folderId}`);
-  }
-
-  clearFolderIndex(folderId: number): void {
-    const docs = this.store.listKBDocsByFolder(folderId);
-    for (const doc of docs) {
-      this.indexer.enqueue(doc.file_path, folderId, 'delete');
-    }
-    this.store.clearKBDocsByFolder(folderId);
-    console.log(`[KBManager] cleared index for folder id=${folderId}`);
-  }
+  // ── Folder info ────────────────────────────────────────────────────────────
 
   listFolders(): KBFolder[] {
-    const folders = this.store.listKBFolders();
-    return folders.map((f) => {
-      const docs = this.store.listKBDocsByFolder(f.id);
-      const indexingCount = docs.filter((d) => d.status === 'indexing' || d.status === 'pending').length;
-      return {
-        ...f,
-        doc_count: docs.length,
-        status: (indexingCount > 0 || this.indexer.running ? 'indexing' : 'idle') as 'idle' | 'indexing',
-      };
-    });
+    const docs = this.store.listKBDocsByFolder(this.folderId);
+    const indexingCount = docs.filter((d) => d.status === 'indexing' || d.status === 'pending').length;
+    return [{
+      id: this.folderId,
+      path: this.getKBFolderPath(),
+      created_at: Date.now(),
+      doc_count: docs.length,
+      status: (indexingCount > 0 || this.indexer.running ? 'indexing' : 'idle') as 'idle' | 'indexing',
+    }];
   }
 
   // ── Rebuild ────────────────────────────────────────────────────────────────
 
   async rebuild(): Promise<void> {
-    const folders = this.store.listKBFolders();
     await this.kbStore.deleteTable();
     await this.kbStore.init();
-    for (const folder of folders) {
-      this.store.clearKBDocsByFolder(folder.id);
-      // Re-watch triggers initial scan via chokidar ignoreInitial:false
-      await this.watcher.unwatch(folder.id);
-      this.watcher.watch(folder.id, folder.path);
-    }
+    this.store.clearKBDocsByFolder(this.folderId);
+    await this.watcher.unwatch(this.folderId);
+    this.watcher.watch(this.folderId, this.getKBFolderPath());
     console.log('[KBManager] full rebuild triggered');
   }
 
@@ -113,15 +110,14 @@ export class KBManager extends EventEmitter {
   // ── Search ─────────────────────────────────────────────────────────────────
 
   async search(query: string, topK?: number): Promise<KBSearchResult[]> {
-    const appConfig = this.store.get<{ cloud?: { deviceId?: string } }>('app_config');
-    const deviceId = appConfig?.cloud?.deviceId?.trim() ?? '';
-    if (!deviceId) return [];
+    const zhipuApiKey = this.getZhipuApiKey();
+    if (!zhipuApiKey) return [];
 
     const isEmpty = await this.kbStore.isEmpty();
     if (isEmpty) return [];
 
     const k = topK ?? Number(this.store.get<string>('kb:top_k') ?? '5');
-    const [queryVector] = await callEmbeddingPublic([query], deviceId);
+    const [queryVector] = await callEmbeddingPublic([query], zhipuApiKey);
     return this.kbStore.search(queryVector, k);
   }
 
@@ -132,9 +128,8 @@ export class KBManager extends EventEmitter {
   }
 
   async generateScope(): Promise<string> {
-    const appConfig = this.store.get<{ cloud?: { deviceId?: string } }>('app_config');
-    const deviceId = appConfig?.cloud?.deviceId?.trim() ?? '';
-    if (!deviceId) return '';
+    const zhipuApiKey = this.getZhipuApiKey();
+    if (!zhipuApiKey) return '';
 
     const samples = await this.kbStore.sampleChunks(20);
     if (samples.length === 0) return '';
@@ -144,11 +139,14 @@ export class KBManager extends EventEmitter {
 
     try {
       const fetch = (await import('electron')).net.fetch;
-      const resp = await fetch('http://1.14.96.63:3000/chat', {
+      const resp = await fetch(`${ZHIPU_BASE_URL}/chat/completions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Authorization': `Bearer ${zhipuApiKey}`,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          deviceId,
+          model: 'glm-4-flash',
           stream: false,
           messages: [{ role: 'user', content: prompt }],
         }),
@@ -174,5 +172,12 @@ export class KBManager extends EventEmitter {
 
   async destroy(): Promise<void> {
     await this.watcher.unwatchAll();
+  }
+
+  // ── Private ────────────────────────────────────────────────────────────────
+
+  private getZhipuApiKey(): string {
+    const appConfig = this.store.get<{ providers?: Record<string, { apiKey?: string }> }>('app_config');
+    return appConfig?.providers?.zhipu?.apiKey?.trim() ?? '';
   }
 }

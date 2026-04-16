@@ -878,9 +878,13 @@ const translations: Record<LanguageType, Record<string, string>> = {
 
     // Knowledge Base
     knowledgeBase: '知识库',
-    kbWatchedFolders: '监控文件夹',
-    kbAddFolder: '添加文件夹',
     kbRebuild: '重建索引',
+    kbOpenFolder: '打开目录',
+    kbFolderHint: '将需要检索的文件放入此目录，支持 PDF、Word、PPT、Excel、图片、Markdown、TXT。',
+    kbDocStatusDone: '完成',
+    kbDocStatusError: '失败',
+    kbDocStatusPending: '处理中',
+    kbNoZhipuKey: '知识库需要配置智谱 API Key 才能索引文件（设置 → 模型 → 智谱 GLM）',
     kbIndexStatus: '索引状态',
     kbTotalDocs: '共 {total} 份文档 · {chunks} 个分块',
     kbErrorFiles: '{count} 份文件处理失败',
@@ -900,11 +904,8 @@ const translations: Record<LanguageType, Record<string, string>> = {
     kbChunkCount: '{n} 块',
     kbStatusIdle: '已同步',
     kbStatusIndexing: '索引中…',
-    kbDeleteFolderConfirm: '移除此文件夹监控？已建立的索引将保留。',
-    kbClearIndex: '清除该文件夹索引',
-    kbClearIndexConfirm: '确认清除此文件夹的向量索引？',
     kbRetrievedChunks: '已检索知识库 · {count} 个相关片段',
-    kbEmptyHint: '知识库暂无内容，请先添加文件夹并等待索引完成。',
+    kbEmptyHint: '知识库暂无内容，请将文件放入知识库目录并等待索引完成。',
   },
   en: {
     // Common
@@ -1778,9 +1779,13 @@ const translations: Record<LanguageType, Record<string, string>> = {
 
     // Knowledge Base
     knowledgeBase: 'Knowledge Base',
-    kbWatchedFolders: 'Watched Folders',
-    kbAddFolder: 'Add Folder',
     kbRebuild: 'Rebuild Index',
+    kbOpenFolder: 'Open Folder',
+    kbFolderHint: 'Place files to be indexed in this folder. Supports PDF, Word, PPT, Excel, images, Markdown, and TXT.',
+    kbDocStatusDone: 'Done',
+    kbDocStatusError: 'Failed',
+    kbDocStatusPending: 'Processing',
+    kbNoZhipuKey: 'Knowledge base requires a Zhipu API key to index files (Settings → Model → Zhipu GLM)',
     kbIndexStatus: 'Index Status',
     kbTotalDocs: '{total} documents · {chunks} chunks',
     kbErrorFiles: '{count} file(s) failed',
@@ -1800,11 +1805,8 @@ const translations: Record<LanguageType, Record<string, string>> = {
     kbChunkCount: '{n} chunks',
     kbStatusIdle: 'Synced',
     kbStatusIndexing: 'Indexing…',
-    kbDeleteFolderConfirm: 'Remove this folder from monitoring? Existing index will be kept.',
-    kbClearIndex: 'Clear Folder Index',
-    kbClearIndexConfirm: 'Clear the vector index for this folder?',
     kbRetrievedChunks: 'Searched KB · {count} relevant chunks',
-    kbEmptyHint: 'Knowledge base is empty. Add a folder and wait for indexing to complete.',
+    kbEmptyHint: 'Knowledge base is empty. Place files in the KB folder and wait for indexing to complete.',
   }
 };
 
