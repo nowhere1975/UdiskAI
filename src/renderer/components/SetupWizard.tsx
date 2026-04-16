@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { i18nService } from '../services/i18n';
 import { configService } from '../services/config';
-import { cloudService } from '../services/cloudService';
 import { AppConfig } from '../config';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/20/solid';
 import { ChevronRightIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
@@ -71,30 +70,12 @@ interface SetupWizardProps {
 const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   const t = useCallback((key: string) => i18nService.t(key), []);
 
-  // 云额度状态
-  const [claiming, setClaiming] = useState(false);
-  const [claimed, setClaimed] = useState(false);
-
-  // API Key 折叠区状态
-  const [keyExpanded, setKeyExpanded] = useState(false);
+  const [keyExpanded, setKeyExpanded] = useState(true);
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [saving, setSaving] = useState(false);
   const [keyError, setKeyError] = useState('');
-
-  // 领取首次登录奖励
-  const handleClaim = useCallback(async () => {
-    setClaiming(true);
-    try {
-      await cloudService.enable();
-      // Sync from server to get the actual credits value after registration
-      await cloudService.syncCredits();
-      setClaimed(true);
-    } finally {
-      setClaiming(false);
-    }
-  }, []);
 
   // 保存自带 API Key
   const handleSaveKey = useCallback(async () => {
@@ -149,53 +130,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
 
         <div className="px-6 pb-6 space-y-3">
 
-          {/* ── 首次登录奖励 / 额度管理 ── */}
-          <div className="rounded-xl border dark:border-claude-darkBorder border-gray-200 overflow-hidden">
-            <div className="px-4 py-4">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-semibold dark:text-claude-darkText text-claude-text">
-                  {claimed ? t('onboardingCreditsTitle') : t('onboardingClaimTitle')}
-                </span>
-                {claimed && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                    已领取
-                  </span>
-                )}
-              </div>
-
-              {!claimed ? (
-                <>
-                  <p className="text-xs dark:text-claude-darkTextMuted text-claude-textMuted mb-3">
-                    {t('onboardingClaimDesc')}
-                  </p>
-                  <button
-                    onClick={handleClaim}
-                    disabled={claiming}
-                    className="w-full py-2.5 rounded-lg bg-claude-accent hover:bg-claude-accentHover disabled:opacity-60 text-white text-sm font-medium transition-colors"
-                  >
-                    {claiming ? t('onboardingClaiming') : t('onboardingClaimBtn')}
-                  </button>
-                </>
-              ) : (
-                <div className="flex items-center justify-between mt-2">
-                  <div>
-                    <div className="text-xs dark:text-claude-darkTextMuted text-claude-textMuted">剩余积分</div>
-                    <div className="text-sm font-semibold dark:text-claude-darkText text-claude-text">
-                      {cloudService.getCachedCredits().toLocaleString()} 积分
-                    </div>
-                  </div>
-                  <button
-                    onClick={onComplete}
-                    className="px-4 py-2 rounded-lg bg-claude-accent hover:bg-claude-accentHover text-white text-sm font-medium transition-colors"
-                  >
-                    开始使用
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ── 自带 API Key（折叠） ── */}
+          {/* ── API Key 配置 ── */}
           <div className="rounded-xl border dark:border-claude-darkBorder border-gray-200 overflow-hidden">
             <button
               type="button"

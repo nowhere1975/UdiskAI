@@ -1108,7 +1108,7 @@ if (!gotTheLock) {
     try {
       if (enabled) {
         if (preventSleepBlockerId === null || !powerSaveBlocker.isStarted(preventSleepBlockerId)) {
-          preventSleepBlockerId = powerSaveBlocker.start('prevent-display-sleep');
+          preventSleepBlockerId = powerSaveBlocker.start('prevent-app-suspension');
         }
       } else {
         if (preventSleepBlockerId !== null && powerSaveBlocker.isStarted(preventSleepBlockerId)) {
@@ -1987,11 +1987,6 @@ if (!gotTheLock) {
   });
 
   ipcMain.handle('check-api-config', async (_event, options?: { probeModel?: boolean }) => {
-    // Cloud credits mode is a valid configuration for regular chat.
-    const appConfig = getStore().get<{ cloud?: { enabled?: boolean } }>('app_config');
-    if (appConfig?.cloud?.enabled === true) {
-      return { hasConfig: true, config: null };
-    }
     const { config, error } = resolveCurrentApiConfig();
     if (config && options?.probeModel) {
       const probe = await probeCoworkModelReadiness();
@@ -2338,18 +2333,6 @@ if (!gotTheLock) {
 
   // ── KB IPC handlers ──────────────────────────────────────────────────────
 
-  ipcMain.handle('kb:addFolder', async (_event, folderPath: string) => {
-    return kbManager!.addFolder(folderPath);
-  });
-
-  ipcMain.handle('kb:removeFolder', (_event, folderId: number) => {
-    kbManager!.removeFolder(folderId);
-  });
-
-  ipcMain.handle('kb:clearFolderIndex', (_event, folderId: number) => {
-    kbManager!.clearFolderIndex(folderId);
-  });
-
   ipcMain.handle('kb:listFolders', () => {
     return kbManager!.listFolders();
   });
@@ -2362,9 +2345,13 @@ if (!gotTheLock) {
     return kbManager!.getStats();
   });
 
-  ipcMain.handle('kb:selectFolder', async () => {
-    const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
-    return result.canceled ? null : result.filePaths[0];
+  ipcMain.handle('kb:getKBFolderPath', () => {
+    return kbManager!.getKBFolderPath();
+  });
+
+  ipcMain.handle('kb:openFolder', async () => {
+    const { shell } = await import('electron');
+    await shell.openPath(kbManager!.getKBFolderPath());
   });
 
   ipcMain.handle('kb:getConfig', () => {
@@ -2791,7 +2778,7 @@ if (!gotTheLock) {
     const preventSleepEnabled = getStore().get<boolean>('prevent_sleep_enabled');
     if (preventSleepEnabled) {
       try {
-        preventSleepBlockerId = powerSaveBlocker.start('prevent-display-sleep');
+        preventSleepBlockerId = powerSaveBlocker.start('prevent-app-suspension');
       } catch (err) {
         console.error('[Main] Failed to start prevent-sleep blocker:', err);
       }

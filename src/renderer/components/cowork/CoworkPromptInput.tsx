@@ -195,7 +195,7 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
     return () => {
       window.removeEventListener('cowork:focus-input', handleFocusInput);
     };
-  }, []);
+  }, [dispatch, draftKey]);
 
   useEffect(() => {
     if (workingDirectory?.trim()) {

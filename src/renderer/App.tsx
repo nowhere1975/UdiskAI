@@ -12,7 +12,6 @@ import KBManagePage from './components/kb/KBManagePage';
 import CoworkPermissionModal from './components/cowork/CoworkPermissionModal';
 import CoworkQuestionWizard from './components/cowork/CoworkQuestionWizard';
 import { configService } from './services/config';
-import { cloudService } from './services/cloudService';
 import { apiService } from './services/api';
 import { themeService } from './services/theme';
 import { coworkService } from './services/cowork';
@@ -99,9 +98,6 @@ const App: React.FC = () => {
         };
         apiService.setConfig(apiConfig);
 
-        // 内置额度云模式初始化（若已启用则自动注册/同步余额）
-        void cloudService.init();
-
         // 从 providers 配置中加载可用模型列表到 Redux
         const providerModels: { id: string; name: string; provider?: string; providerKey?: string; supportsImage?: boolean }[] = [];
         if (config.providers) {
@@ -125,12 +121,7 @@ const App: React.FC = () => {
           providerKey: undefined,
           supportsImage: model.supportsImage ?? false,
         }));
-        let resolvedModels = providerModels.length > 0 ? providerModels : fallbackModels;
-        // When cloud credits mode is enabled but no provider models are configured,
-        // inject a placeholder so ModelSelector doesn't show "please configure model".
-        if (resolvedModels.length === 0 && cloudService.isEnabled()) {
-          resolvedModels = [{ id: 'cloud', name: i18nService.t('cloudModel'), providerKey: 'cloud', supportsImage: false }];
-        }
+        const resolvedModels = providerModels.length > 0 ? providerModels : fallbackModels;
         if (resolvedModels.length > 0) {
           dispatch(setAvailableModels(resolvedModels));
           const preferredModel = resolvedModels.find(
@@ -286,9 +277,6 @@ const App: React.FC = () => {
     }
     if (allModels.length > 0) {
       dispatch(setAvailableModels(allModels));
-    } else if (cloudService.isEnabled()) {
-      const { modelId, modelName } = cloudService.getCachedModel();
-      dispatch(setAvailableModels([{ id: modelId, name: modelName, providerKey: 'cloud', supportsImage: false }]));
     }
   };
 
