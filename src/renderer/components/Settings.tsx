@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { configService } from '../services/config';
+import { kbService } from '../services/kb';
 import { apiService } from '../services/api';
 import { themeService } from '../services/theme';
 import { i18nService, LanguageType } from '../services/i18n';
@@ -418,6 +419,15 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
   const [newModelId, setNewModelId] = useState('');
   const [newModelSupportsImage, setNewModelSupportsImage] = useState(false);
   const [modelFormError, setModelFormError] = useState<string | null>(null);
+
+  const [kbEmbedConfig, setKbEmbedConfig] = useState({
+    embedding_provider: 'siliconflow',
+    embedding_api_key: '',
+    vision_provider: 'none',
+    vision_api_key: '',
+  });
+  const [showKbEmbedApiKey, setShowKbEmbedApiKey] = useState(false);
+  const [showKbVisionApiKey, setShowKbVisionApiKey] = useState(false);
 
   // About tab
   const [appVersion, setAppVersion] = useState('');
@@ -870,6 +880,18 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
     void loadCoworkMemoryData();
   }, [activeTab, loadCoworkMemoryData]);
 
+  useEffect(() => {
+    if (activeTab !== 'model') return;
+    void kbService.getConfig().then((cfg) => {
+      setKbEmbedConfig({
+        embedding_provider: cfg.embedding_provider ?? 'siliconflow',
+        embedding_api_key: cfg.embedding_api_key ?? '',
+        vision_provider: cfg.vision_provider ?? 'none',
+        vision_api_key: cfg.vision_api_key ?? '',
+      });
+    });
+  }, [activeTab]);
+
   /**
    * Detect default template content and return empty string.
    * Templates contain YAML frontmatter and specific marker phrases.
@@ -1125,6 +1147,12 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
   // 阻止点击设置窗口时事件传播到背景
   const handleSettingsClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+  };
+
+  const handleSaveKbEmbedConfig = (partial: Partial<typeof kbEmbedConfig>) => {
+    const next = { ...kbEmbedConfig, ...partial };
+    setKbEmbedConfig(next);
+    void kbService.setConfig(partial as Record<string, string>);
   };
 
   // Handlers for model operations
@@ -2348,6 +2376,103 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* ── 知识库向量服务 ── */}
+            <div className="flex-shrink-0 pb-4">
+              <div className="mb-3">
+                <span className="text-sm font-semibold dark:text-claude-darkText text-claude-text">
+                  {i18nService.t('kbEmbedSettings')}
+                </span>
+              </div>
+              <div className="rounded-xl border dark:border-claude-darkBorder border-claude-border dark:bg-claude-darkSurface bg-white divide-y dark:divide-claude-darkBorder divide-claude-border">
+                {/* Embedding provider */}
+                <div className="px-4 py-3 flex items-center gap-3">
+                  <span className="text-sm dark:text-claude-darkText text-claude-text w-28 shrink-0">{i18nService.t('kbEmbedProvider')}</span>
+                  <select
+                    value={kbEmbedConfig.embedding_provider}
+                    onChange={(e) => handleSaveKbEmbedConfig({ embedding_provider: e.target.value })}
+                    className="flex-1 text-sm px-2 py-1.5 rounded-lg border dark:border-claude-darkBorder border-claude-border dark:bg-claude-darkSurfaceMuted bg-claude-surfaceMuted dark:text-claude-darkText text-claude-text focus:outline-none focus:ring-1 focus:ring-claude-accent"
+                  >
+                    <option value="siliconflow">{i18nService.t('kbProviderSiliconflow')}</option>
+                    <option value="zhipu">{i18nService.t('kbProviderZhipu')}</option>
+                    <option value="qwen">{i18nService.t('kbProviderQwen')}</option>
+                  </select>
+                </div>
+                {/* Embedding API key */}
+                <div className="px-4 py-3 flex flex-col gap-1.5">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm dark:text-claude-darkText text-claude-text w-28 shrink-0">{i18nService.t('kbEmbedApiKey')}</span>
+                    <div className="flex-1 relative">
+                      <input
+                        type={showKbEmbedApiKey ? 'text' : 'password'}
+                        value={kbEmbedConfig.embedding_api_key}
+                        onChange={(e) => handleSaveKbEmbedConfig({ embedding_api_key: e.target.value })}
+                        placeholder="sk-..."
+                        className="w-full text-sm px-3 py-1.5 pr-9 rounded-lg border dark:border-claude-darkBorder border-claude-border dark:bg-claude-darkSurfaceMuted bg-claude-surfaceMuted dark:text-claude-darkText text-claude-text focus:outline-none focus:ring-1 focus:ring-claude-accent"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowKbEmbedApiKey((v) => !v)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 dark:text-claude-darkTextSecondary text-claude-textSecondary"
+                      >
+                        {showKbEmbedApiKey ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  {kbEmbedConfig.embedding_provider === 'siliconflow' && (
+                    <a
+                      href="https://cloud.siliconflow.cn/account/ak"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-claude-accent hover:underline ml-[calc(7rem+0.75rem)]"
+                    >
+                      {i18nService.t('kbRegisterLink')}
+                    </a>
+                  )}
+                </div>
+                {/* Vision provider */}
+                <div className="px-4 py-3 flex items-center gap-3">
+                  <span className="text-sm dark:text-claude-darkText text-claude-text w-28 shrink-0">{i18nService.t('kbVisionProvider')}</span>
+                  <select
+                    value={kbEmbedConfig.vision_provider}
+                    onChange={(e) => handleSaveKbEmbedConfig({ vision_provider: e.target.value })}
+                    className="flex-1 text-sm px-2 py-1.5 rounded-lg border dark:border-claude-darkBorder border-claude-border dark:bg-claude-darkSurfaceMuted bg-claude-surfaceMuted dark:text-claude-darkText text-claude-text focus:outline-none focus:ring-1 focus:ring-claude-accent"
+                  >
+                    <option value="none">{i18nService.t('kbVisionNone')}</option>
+                    <option value="zhipu">{i18nService.t('kbVisionZhipu')}</option>
+                    <option value="qwen">{i18nService.t('kbVisionQwen')}</option>
+                  </select>
+                </div>
+                {/* Vision API key (only when a provider is selected) */}
+                {kbEmbedConfig.vision_provider !== 'none' && (
+                  <div className="px-4 py-3 flex items-center gap-3">
+                    <span className="text-sm dark:text-claude-darkText text-claude-text w-28 shrink-0">{i18nService.t('kbVisionApiKey')}</span>
+                    <div className="flex-1 relative">
+                      <input
+                        type={showKbVisionApiKey ? 'text' : 'password'}
+                        value={kbEmbedConfig.vision_api_key}
+                        onChange={(e) => handleSaveKbEmbedConfig({ vision_api_key: e.target.value })}
+                        placeholder="sk-..."
+                        className="w-full text-sm px-3 py-1.5 pr-9 rounded-lg border dark:border-claude-darkBorder border-claude-border dark:bg-claude-darkSurfaceMuted bg-claude-surfaceMuted dark:text-claude-darkText text-claude-text focus:outline-none focus:ring-1 focus:ring-claude-accent"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowKbVisionApiKey((v) => !v)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 dark:text-claude-darkTextSecondary text-claude-textSecondary"
+                      >
+                        {showKbVisionApiKey ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {/* Rebuild hint */}
+                <div className="px-4 py-2.5">
+                  <p className="text-xs dark:text-claude-darkTextSecondary text-claude-textSecondary">
+                    {i18nService.t('kbRebuildHint')}
+                  </p>
+                </div>
               </div>
             </div>
 

@@ -2358,12 +2358,18 @@ if (!gotTheLock) {
     return {
       trigger_words: store!.get<string>('kb:trigger_words') ?? '知识库',
       top_k: store!.get<string>('kb:top_k') ?? '5',
+      embedding_provider: store!.get<string>('kb:embedding_provider') ?? 'siliconflow',
+      embedding_api_key: store!.get<string>('kb:embedding_api_key') ?? '',
+      vision_provider: store!.get<string>('kb:vision_provider') ?? 'none',
+      vision_api_key: store!.get<string>('kb:vision_api_key') ?? '',
     };
   });
 
-  ipcMain.handle('kb:setConfig', (_event, config: { trigger_words?: string; top_k?: string }) => {
-    if (config.trigger_words !== undefined) store!.set('kb:trigger_words', config.trigger_words);
-    if (config.top_k !== undefined) store!.set('kb:top_k', config.top_k);
+  ipcMain.handle('kb:setConfig', (_event, config: Record<string, string>) => {
+    const allowed = ['trigger_words', 'top_k', 'embedding_provider', 'embedding_api_key', 'vision_provider', 'vision_api_key'];
+    for (const key of allowed) {
+      if (config[key] !== undefined) store!.set(`kb:${key}`, config[key]);
+    }
   });
 
   ipcMain.handle('kb:listDocs', (_event, folderId: number) => {
@@ -2654,13 +2660,19 @@ if (!gotTheLock) {
     // Note: Calendar permission is checked on-demand when calendar operations are requested
     // We don't trigger permission dialogs at startup to avoid annoying users
 
-    // Ensure default working directory exists (portable: inside USB data/project)
-    const defaultProjectDir = path.join(app.getPath('userData'), 'project');
-    if (!fs.existsSync(defaultProjectDir)) {
-      fs.mkdirSync(defaultProjectDir, { recursive: true });
-      console.log('[Main] Created default project directory:', defaultProjectDir);
+    // Ensure default workspace directory exists.
+    // Portable: <exe_dir>/workspace (peer of data/). Non-portable: <userData>/workspace.
+    const exeDir = path.dirname(app.getPath('exe'));
+    const portableMarker = path.join(exeDir, 'data', '.portable');
+    const isPortable = fs.existsSync(portableMarker) || process.env.PORTABLE_MODE === '1';
+    const defaultWorkspaceDir = isPortable
+      ? path.join(path.dirname(app.getPath('userData')), 'workspace')
+      : path.join(app.getPath('userData'), 'workspace');
+    if (!fs.existsSync(defaultWorkspaceDir)) {
+      fs.mkdirSync(defaultWorkspaceDir, { recursive: true });
+      console.log('[Main] Created default workspace directory:', defaultWorkspaceDir);
     }
-    console.log('[Main] initApp: default project dir ensured');
+    console.log('[Main] initApp: default workspace dir ensured');
 
     // 注册 localfile:// 自定义协议，用于安全加载本地文件（图片等）
     protocol.handle('localfile', (request) => {

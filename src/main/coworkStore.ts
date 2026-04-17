@@ -12,9 +12,16 @@ import {
 import { judgeMemoryCandidate } from './libs/coworkMemoryJudge';
 
 // Default working directory for new users.
-// In portable mode, app.getPath('userData') is already remapped to the USB data/ folder.
+// Portable mode: userData = <exe_dir>/data → workspace lives at <exe_dir>/workspace (peer of data/).
+// Non-portable: workspace lives inside userData as a sub-folder.
 const getDefaultWorkingDirectory = (): string => {
-  return path.join(app.getPath('userData'), 'project');
+  const userData = app.getPath('userData');
+  const exeDir = path.dirname(app.getPath('exe'));
+  const portableMarker = path.join(exeDir, 'data', '.portable');
+  const isPortable = fs.existsSync(portableMarker) || process.env.PORTABLE_MODE === '1';
+  return isPortable
+    ? path.join(path.dirname(userData), 'workspace')
+    : path.join(userData, 'workspace');
 };
 
 const TASK_WORKSPACE_CONTAINER_DIR = '.lobsterai-tasks';

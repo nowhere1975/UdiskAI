@@ -24,6 +24,10 @@ export interface KBIndexProgress {
 export interface KBConfig {
   trigger_words: string;
   top_k: string;
+  embedding_provider: string;
+  embedding_api_key: string;
+  vision_provider: string;
+  vision_api_key: string;
 }
 
 export interface KBDoc {
@@ -36,18 +40,6 @@ export interface KBDoc {
 }
 
 export const kbService = {
-  async addFolder(folderPath: string): Promise<KBFolder> {
-    return window.electron.kb.addFolder(folderPath);
-  },
-
-  async removeFolder(folderId: number): Promise<void> {
-    return window.electron.kb.removeFolder(folderId);
-  },
-
-  async clearFolderIndex(folderId: number): Promise<void> {
-    return window.electron.kb.clearFolderIndex(folderId);
-  },
-
   async listFolders(): Promise<KBFolder[]> {
     return window.electron.kb.listFolders();
   },
@@ -60,8 +52,12 @@ export const kbService = {
     return window.electron.kb.getStats();
   },
 
-  async selectFolder(): Promise<string | null> {
-    return window.electron.kb.selectFolder();
+  async getKBFolderPath(): Promise<string> {
+    return window.electron.kb.getKBFolderPath();
+  },
+
+  async openFolder(): Promise<void> {
+    return window.electron.kb.openFolder();
   },
 
   async getConfig(): Promise<KBConfig> {

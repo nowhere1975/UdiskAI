@@ -15,14 +15,14 @@ const KBManagePage: React.FC = () => {
   const [folder, setFolder] = useState<KBFolder | null>(null);
   const [folderPath, setFolderPath] = useState('');
   const [stats, setStats] = useState<KBStats>({ total_docs: 0, done_docs: 0, error_docs: 0, total_chunks: 0, error_files: [] });
-  const [config, setConfig] = useState<KBConfig>({ trigger_words: '知识库', top_k: '5' });
+  const [config, setConfig] = useState<KBConfig>({ trigger_words: '知识库', top_k: '5', embedding_provider: 'siliconflow', embedding_api_key: '', vision_provider: 'none', vision_api_key: '' });
   const [progress, setProgress] = useState<KBIndexProgress | null>(null);
   const [scope, setScope] = useState('');
   const [scopeGenerating, setScopeGenerating] = useState(false);
   const [docs, setDocs] = useState<KBDoc[]>([]);
   const [expanded, setExpanded] = useState(false);
   const [isRebuilding, setIsRebuilding] = useState(false);
-  const [hasZhipuKey, setHasZhipuKey] = useState(true);
+  const [hasEmbedKey, setHasEmbedKey] = useState(true);
 
   const refresh = useCallback(async () => {
     const [folders, s, c, kbPath] = await Promise.all([
@@ -39,9 +39,8 @@ const KBManagePage: React.FC = () => {
     if (f) {
       const allDocs = await kbService.listDocs(f.id);
       setDocs(allDocs);
-      // KB is functional only when Zhipu is configured; detect via error on first doc
-      const noKey = allDocs.some(d => d.error_msg === 'Zhipu API key not configured');
-      setHasZhipuKey(!noKey || allDocs.every(d => d.status === 'done'));
+      const noKey = allDocs.some(d => d.error_msg === 'Embedding API key not configured');
+      setHasEmbedKey(!noKey || allDocs.every(d => d.status === 'done'));
     }
   }, []);
 
@@ -99,8 +98,8 @@ const KBManagePage: React.FC = () => {
           </button>
         </div>
 
-        {/* Zhipu key warning */}
-        {!hasZhipuKey && (
+        {/* Embedding key warning */}
+        {!hasEmbedKey && (
           <div className="rounded-xl border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20 px-4 py-3 text-sm text-orange-700 dark:text-orange-300">
             {t('kbNoZhipuKey')}
           </div>

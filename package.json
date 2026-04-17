@@ -6,7 +6,7 @@
     "email": "udiskai.project@rd.netease.com"
   },
   "license": "MIT",
-  "version": "2026.3.22",
+  "version": "2026.4.17",
   "main": "dist-electron/main.js",
   "engines": {
     "node": ">=24 <25"

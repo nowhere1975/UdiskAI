@@ -10,12 +10,58 @@ import type { KBChunkRecord } from './store';
 import type { KBIndexProgress } from './types';
 import { KB_SUPPORTED_EXTENSIONS } from './types';
 
-const CHUNK_SIZE = 500;           // tokens ≈ chars for CJK
+const CHUNK_SIZE = 500;
 const CHUNK_OVERLAP = 100;
-const ROWS_PER_CHUNK = 5;         // Excel rows per chunk (keep chunks within embedding token limits)
-const EMBED_BATCH_SIZE = 16;      // embedding batch size
-const MAX_CHUNK_CHARS = 2000;     // Hard cap per chunk before sending to embedding API
-const ZHIPU_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4';
+const ROWS_PER_CHUNK = 5;
+const EMBED_BATCH_SIZE = 16;
+const MAX_CHUNK_CHARS = 2000;
+
+// ── Provider configs ─────────────────────────────────────────────────────────
+
+export type EmbeddingProvider = 'siliconflow' | 'zhipu' | 'qwen';
+export type VisionProvider = 'none' | 'zhipu' | 'qwen';
+
+const EMBED_CONFIGS: Record<EmbeddingProvider, { url: string; model: string }> = {
+  siliconflow: {
+    url: 'https://api.siliconflow.cn/v1/embeddings',
+    model: 'BAAI/bge-m3',
+  },
+  zhipu: {
+    url: 'https://open.bigmodel.cn/api/paas/v4/embeddings',
+    model: 'embedding-3',
+  },
+  qwen: {
+    url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings',
+    model: 'text-embedding-v3',
+  },
+};
+
+const VISION_CONFIGS: Record<Exclude<VisionProvider, 'none'>, { url: string; model: string }> = {
+  zhipu: {
+    url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+    model: 'glm-4v',
+  },
+  qwen: {
+    url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+    model: 'qwen-vl-plus',
+  },
+};
+
+// Chat models used for scope generation (cheapest / free options)
+export const SCOPE_CHAT_CONFIGS: Record<EmbeddingProvider, { url: string; model: string }> = {
+  siliconflow: {
+    url: 'https://api.siliconflow.cn/v1/chat/completions',
+    model: 'Qwen/Qwen3-8B',
+  },
+  zhipu: {
+    url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+    model: 'glm-4-flash',
+  },
+  qwen: {
+    url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+    model: 'qwen-turbo',
+  },
+};
 
 // ── Pure helpers (exported for testing) ─────────────────────────────────────
 
@@ -33,7 +79,7 @@ export function chunkExcel(
   sheetName: string,
   rowsPerChunk: number = ROWS_PER_CHUNK
 ): string[] {
-  if (rows.length < 2) return []; // need at least header + 1 data row
+  if (rows.length < 2) return [];
   const header = rows[0];
   const dataRows = rows.slice(1);
   const chunks: string[] = [];
@@ -42,7 +88,7 @@ export function chunkExcel(
     const batch = dataRows.slice(i, i + rowsPerChunk);
     const lines = batch
       .map((row) => header.map((h, idx) => `${h}: ${row[idx] ?? ''}`).join(', '))
-      .filter((line) => line.replace(/[:,\s]/g, '').length > 0); // skip all-empty rows
+      .filter((line) => line.replace(/[:,\s]/g, '').length > 0);
     if (lines.length > 0) {
       chunks.push(`[Sheet: ${sheetName}]\n` + lines.join('\n'));
     }
@@ -60,13 +106,9 @@ function fileHash(filePath: string): string {
   return crypto.createHash('sha256').update(buf).digest('hex');
 }
 
-// ── Local document parsers ───────────────────────────────────────────────────
+// ── Document parsers ─────────────────────────────────────────────────────────
 
-/** Extract plain text from a PPTX file by reading slide XMLs from the ZIP. */
 async function parsePptx(filePath: string): Promise<string> {
-  // Use node-stream-zip for random-access reads — handles large PPTX files
-  // with embedded videos without loading the entire archive into memory.
-
   const StreamZip = require('node-stream-zip') as { async: new (opts: { file: string }) => NodeStreamZipAsync };
 
   interface NodeStreamZipAsync {
@@ -92,16 +134,13 @@ async function parsePptx(filePath: string): Promise<string> {
       const text = parts.join(' ').replace(/\s+/g, ' ').trim();
       if (text) slideTexts.push(text);
     }
-
     return slideTexts.join('\n\n');
   } finally {
     await zip.close();
   }
 }
 
-/** Extract plain text from a DOCX file by reading word/document.xml from the ZIP. */
 async function parseDocx(filePath: string): Promise<string> {
-
   const StreamZip = require('node-stream-zip') as { async: new (opts: { file: string }) => { entryData(name: string): Promise<Buffer>; close(): Promise<void> } };
   const zip = new StreamZip.async({ file: filePath });
   try {
@@ -119,10 +158,9 @@ const IMAGE_MIME: Record<string, string> = {
   jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
   gif: 'image/gif', webp: 'image/webp', bmp: 'image/png', tiff: 'image/png',
 };
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
-/** Describe an image via Zhipu GLM-4V using the user's Zhipu API key. */
-async function describeImageWithZhipu(filePath: string, zhipuApiKey: string): Promise<string> {
+async function describeImage(filePath: string, provider: Exclude<VisionProvider, 'none'>, apiKey: string): Promise<string> {
   const stat = fs.statSync(filePath);
   if (stat.size > MAX_IMAGE_BYTES) {
     throw new Error(`image too large (${Math.round(stat.size / 1024)}KB > 10240KB limit)`);
@@ -132,15 +170,13 @@ async function describeImageWithZhipu(filePath: string, zhipuApiKey: string): Pr
   const ext = path.extname(filePath).toLowerCase().slice(1);
   const mimeType = IMAGE_MIME[ext] ?? 'image/jpeg';
   const imageBase64 = fs.readFileSync(filePath).toString('base64');
+  const cfg = VISION_CONFIGS[provider];
 
-  const resp = await fetch(`${ZHIPU_BASE_URL}/chat/completions`, {
+  const resp = await fetch(cfg.url, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${zhipuApiKey}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'glm-4v',
+      model: cfg.model,
       max_tokens: 512,
       messages: [{
         role: 'user',
@@ -153,58 +189,54 @@ async function describeImageWithZhipu(filePath: string, zhipuApiKey: string): Pr
   });
 
   if (!resp.ok) {
-    throw new Error(`Zhipu vision error ${resp.status}: ${await resp.text()}`);
+    throw new Error(`${provider} vision error ${resp.status}: ${await resp.text()}`);
   }
 
   const json = await resp.json() as { choices?: Array<{ message?: { content?: string } }> };
   return json.choices?.[0]?.message?.content ?? '';
 }
 
-/** Extract plain text from a PDF file. */
 async function parsePdf(filePath: string): Promise<string> {
-  // pdf-parse v2: class-based API, accepts a local file path via `url`
-
   const { PDFParse } = require('pdf-parse') as { PDFParse: new (opts: { url: string }) => { getText(): Promise<{ text: string }> } };
   const parser = new PDFParse({ url: filePath });
   const result = await parser.getText();
   return result.text;
 }
 
-async function callEmbeddingBatch(texts: string[], zhipuApiKey: string): Promise<number[][]> {
-  const fetch = (await import('electron')).net.fetch;
+// ── Embedding API ────────────────────────────────────────────────────────────
 
-  const response = await fetch(`${ZHIPU_BASE_URL}/embeddings`, {
+async function callEmbeddingBatch(texts: string[], provider: EmbeddingProvider, apiKey: string): Promise<number[][]> {
+  const fetch = (await import('electron')).net.fetch;
+  const cfg = EMBED_CONFIGS[provider];
+
+  const response = await fetch(cfg.url, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${zhipuApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ model: 'embedding-3', input: texts }),
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: cfg.model, input: texts }),
   });
 
   if (!response.ok) {
-    throw new Error(`Zhipu embedding error ${response.status}: ${await response.text()}`);
+    throw new Error(`${provider} embedding error ${response.status}: ${await response.text()}`);
   }
 
   const json = await response.json() as { data: Array<{ embedding: number[] }> };
   return json.data.map((item) => item.embedding);
 }
 
-/** Call embedding API for a batch; on failure, fall back to one-by-one to skip bad chunks. */
-async function callEmbedding(texts: string[], zhipuApiKey: string): Promise<(number[] | null)[]> {
+async function callEmbedding(texts: string[], provider: EmbeddingProvider, apiKey: string): Promise<(number[] | null)[]> {
   const safeTexts = texts.map((t) => t.length > MAX_CHUNK_CHARS ? t.slice(0, MAX_CHUNK_CHARS) : t);
 
   try {
-    return await callEmbeddingBatch(safeTexts, zhipuApiKey);
+    return await callEmbeddingBatch(safeTexts, provider, apiKey);
   } catch (batchError) {
     console.warn(`[KBIndexer] batch embedding failed, retrying individually: ${batchError instanceof Error ? batchError.message : batchError}`);
     const results: (number[] | null)[] = [];
     for (let i = 0; i < safeTexts.length; i++) {
       try {
-        const [vec] = await callEmbeddingBatch([safeTexts[i]], zhipuApiKey);
+        const [vec] = await callEmbeddingBatch([safeTexts[i]], provider, apiKey);
         results.push(vec);
       } catch (singleError) {
-        console.warn(`[KBIndexer] skipping chunk ${i} (${safeTexts[i].length} chars): ${singleError instanceof Error ? singleError.message : singleError}`);
+        console.warn(`[KBIndexer] skipping chunk ${i}: ${singleError instanceof Error ? singleError.message : singleError}`);
         results.push(null);
       }
     }
@@ -220,16 +252,9 @@ function parseExcelToChunks(filePath: string): string[] {
 
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json<string[]>(sheet, {
-      header: 1,
-      defval: '',
-      raw: false,
-    }) as string[][];
-
-    const chunks = chunkExcel(rows, sheetName);
-    allChunks.push(...chunks);
+    const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '', raw: false }) as string[][];
+    allChunks.push(...chunkExcel(rows, sheetName));
   }
-
   return allChunks;
 }
 
@@ -248,7 +273,6 @@ export class KBIndexer extends EventEmitter {
   }
 
   enqueue(filePath: string, folderId: number, action: 'upsert' | 'delete'): void {
-    // Deduplicate: replace existing entry for same path
     this.queue = this.queue.filter((q) => q.filePath !== filePath);
     this.queue.push({ filePath, folderId, action });
     if (!this.isRunning) {
@@ -256,7 +280,6 @@ export class KBIndexer extends EventEmitter {
     }
   }
 
-  /** Cancel all pending queue items for a folder (call before removing folder). */
   cancelFolder(folderId: number): void {
     this.queue = this.queue.filter((q) => q.folderId !== folderId);
   }
@@ -268,15 +291,9 @@ export class KBIndexer extends EventEmitter {
 
     while (this.queue.length > 0) {
       const item = this.queue.shift()!;
-      // Total is always recalculated: completed + current + remaining
       const total = done + 1 + this.queue.length;
 
-      this.emit('progress', {
-        total,
-        done,
-        current_file: item.filePath,
-        errors,
-      } satisfies KBIndexProgress);
+      this.emit('progress', { total, done, current_file: item.filePath, errors } satisfies KBIndexProgress);
 
       if (item.action === 'delete') {
         await this.kbStore.deleteByFilePath(item.filePath);
@@ -286,28 +303,35 @@ export class KBIndexer extends EventEmitter {
       }
 
       done++;
-      await new Promise<void>((resolve) => setImmediate(resolve)); // yield to event loop
+      await new Promise<void>((resolve) => setImmediate(resolve));
     }
 
-    this.emit('progress', {
-      total: done,
-      done,
-      current_file: '',
-      errors,
-    } satisfies KBIndexProgress);
-
+    this.emit('progress', { total: done, done, current_file: '', errors } satisfies KBIndexProgress);
     this.isRunning = false;
   }
 
-  private async indexFile(filePath: string, folderId: number, errors: string[]): Promise<void> {
-    const appConfig = this.store.get<{ providers?: Record<string, { apiKey?: string }> }>('app_config');
-    const zhipuApiKey = appConfig?.providers?.zhipu?.apiKey?.trim() ?? '';
+  private getEmbeddingConfig(): { provider: EmbeddingProvider; apiKey: string } | null {
+    const provider = (this.store.get<string>('kb:embedding_provider') ?? 'siliconflow') as EmbeddingProvider;
+    const apiKey = this.store.get<string>('kb:embedding_api_key') ?? '';
+    if (!apiKey) return null;
+    return { provider, apiKey };
+  }
 
-    if (!zhipuApiKey) {
-      const msg = `[KB] skipping ${path.basename(filePath)}: Zhipu API key not configured`;
+  private getVisionConfig(): { provider: Exclude<VisionProvider, 'none'>; apiKey: string } | null {
+    const provider = (this.store.get<string>('kb:vision_provider') ?? 'none') as VisionProvider;
+    if (provider === 'none') return null;
+    const apiKey = this.store.get<string>('kb:vision_api_key') ?? '';
+    if (!apiKey) return null;
+    return { provider, apiKey };
+  }
+
+  private async indexFile(filePath: string, folderId: number, errors: string[]): Promise<void> {
+    const embedCfg = this.getEmbeddingConfig();
+    if (!embedCfg) {
+      const msg = `[KB] skipping ${path.basename(filePath)}: embedding API key not configured`;
       console.warn(msg);
       errors.push(msg);
-      this.store.upsertKBDoc({ folder_id: folderId, file_path: filePath, status: 'error', error_msg: 'Zhipu API key not configured' });
+      this.store.upsertKBDoc({ folder_id: folderId, file_path: filePath, status: 'error', error_msg: 'Embedding API key not configured' });
       return;
     }
 
@@ -321,14 +345,12 @@ export class KBIndexer extends EventEmitter {
     }
 
     const existing = this.store.getKBDoc(filePath);
-    if (existing?.file_hash === hash && existing.status === 'done') {
-      return; // unchanged
-    }
+    if (existing?.file_hash === hash && existing.status === 'done') return;
 
     this.store.upsertKBDoc({ folder_id: folderId, file_path: filePath, file_hash: hash, status: 'indexing' });
 
     try {
-      const rawChunks = await this.extractChunks(filePath, zhipuApiKey);
+      const rawChunks = await this.extractChunks(filePath, embedCfg.provider, embedCfg.apiKey);
       const chunks = rawChunks.filter((c) => c.trim().length > 0);
       if (!chunks.length) {
         this.store.upsertKBDoc({ folder_id: folderId, file_path: filePath, file_hash: hash, status: 'done', chunk_count: 0 });
@@ -338,7 +360,7 @@ export class KBIndexer extends EventEmitter {
       const allVectors: (number[] | null)[] = [];
       for (let i = 0; i < chunks.length; i += EMBED_BATCH_SIZE) {
         const batch = chunks.slice(i, i + EMBED_BATCH_SIZE);
-        const vectors = await callEmbedding(batch, zhipuApiKey);
+        const vectors = await callEmbedding(batch, embedCfg.provider, embedCfg.apiKey);
         allVectors.push(...vectors);
         await new Promise<void>((resolve) => setImmediate(resolve));
       }
@@ -365,50 +387,28 @@ export class KBIndexer extends EventEmitter {
     }
   }
 
-  private async extractChunks(filePath: string, zhipuApiKey: string): Promise<string[]> {
+  private async extractChunks(filePath: string, embedProvider: EmbeddingProvider, embedApiKey: string): Promise<string[]> {
     const ext = path.extname(filePath).toLowerCase();
 
-    if (ext === '.xlsx' || ext === '.xls') {
-      return parseExcelToChunks(filePath);
-    }
-
-    if (ext === '.md' || ext === '.txt') {
-      const text = fs.readFileSync(filePath, 'utf-8');
-      return chunkMarkdown(text);
-    }
-
-    if (ext === '.pptx') {
-      const text = await parsePptx(filePath);
-      return chunkMarkdown(text);
-    }
-
-    if (ext === '.docx') {
-      const text = await parseDocx(filePath);
-      return chunkMarkdown(text);
-    }
-
-    if (ext === '.pdf') {
-      const text = await parsePdf(filePath);
-      return chunkMarkdown(text);
-    }
+    if (ext === '.xlsx' || ext === '.xls') return parseExcelToChunks(filePath);
+    if (ext === '.md' || ext === '.txt') return chunkMarkdown(fs.readFileSync(filePath, 'utf-8'));
+    if (ext === '.pptx') return chunkMarkdown(await parsePptx(filePath));
+    if (ext === '.docx') return chunkMarkdown(await parseDocx(filePath));
+    if (ext === '.pdf') return chunkMarkdown(await parsePdf(filePath));
 
     if (IMAGE_EXTENSIONS.has(ext)) {
-      const description = await describeImageWithZhipu(filePath, zhipuApiKey);
+      const visionCfg = this.getVisionConfig();
+      if (!visionCfg) return []; // skip images silently when no vision provider configured
+      const description = await describeImage(filePath, visionCfg.provider, visionCfg.apiKey);
       if (!description.trim()) return [];
-      const fileName = path.basename(filePath);
-      return [`[图片：${fileName}]\n${description}`];
+      return [`[图片：${path.basename(filePath)}]\n${description}`];
     }
 
     return [];
   }
 
-  get queueLength(): number {
-    return this.queue.length;
-  }
-
-  get running(): boolean {
-    return this.isRunning;
-  }
+  get queueLength(): number { return this.queue.length; }
+  get running(): boolean { return this.isRunning; }
 }
 
 export const callEmbeddingPublic = callEmbeddingBatch;

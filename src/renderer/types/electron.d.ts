@@ -216,14 +216,12 @@ interface IElectronAPI {
     onChanged: (callback: () => void) => () => void;
   };
   kb: {
-    addFolder: (folderPath: string) => Promise<{ id: number; path: string; created_at: number }>;
-    removeFolder: (folderId: number) => Promise<void>;
-    clearFolderIndex: (folderId: number) => Promise<void>;
     listFolders: () => Promise<Array<{ id: number; path: string; created_at: number; doc_count?: number; status?: 'idle' | 'indexing' }>>;
     rebuild: () => Promise<void>;
     getStats: () => Promise<{ total_docs: number; done_docs: number; error_docs: number; total_chunks: number; error_files: Array<{ file_path: string; error_msg: string | null }> }>;
-    selectFolder: () => Promise<string | null>;
-    getConfig: () => Promise<{ trigger_words: string; top_k: string }>;
+    getKBFolderPath: () => Promise<string>;
+    openFolder: () => Promise<void>;
+    getConfig: () => Promise<{ trigger_words: string; top_k: string; embedding_provider: string; embedding_api_key: string; vision_provider: string; vision_api_key: string }>;
     setConfig: (config: Record<string, string>) => Promise<void>;
     listDocs: (folderId: number) => Promise<Array<{ id: number; file_path: string; file_hash: string | null; status: string; error_msg: string | null; chunk_count: number | null }>>;
     getScope: () => Promise<string>;
