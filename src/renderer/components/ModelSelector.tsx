@@ -49,39 +49,38 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ dropdownDirection = 'down
   const dropdownPositionClass = dropdownDirection === 'up'
     ? 'bottom-full mb-1'
     : 'top-full mt-1';
-
   return (
     <div ref={containerRef} className="relative cursor-pointer">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl dark:hover:bg-claude-darkSurfaceHover hover:bg-claude-surfaceHover dark:text-claude-darkText text-claude-text transition-colors cursor-pointer ${isOpen ? 'dark:bg-claude-darkSurfaceHover bg-claude-surfaceHover' : ''}`}
+        className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl dark:hover:bg-claude-darkSurfaceHover hover:bg-claude-surfaceHover dark:text-claude-darkText text-claude-text transition-colors cursor-pointer max-w-[280px] ${isOpen ? 'dark:bg-claude-darkSurfaceHover bg-claude-surfaceHover' : ''}`}
       >
-        <span className="font-medium text-sm">{selectedModel.name}</span>
-        <ChevronDownIcon className="h-4 w-4 dark:text-claude-darkTextSecondary text-claude-textSecondary" />
+        <span className="font-medium text-sm truncate">{selectedModel?.name ?? ''}</span>
+        <ChevronDownIcon className="h-4 w-4 shrink-0 dark:text-claude-darkTextSecondary text-claude-textSecondary" />
       </button>
 
       {isOpen && (
         <div className={`absolute ${dropdownPositionClass} w-52 dark:bg-claude-darkSurface bg-claude-surface rounded-xl popover-enter shadow-popover z-50 dark:border-claude-darkBorder border-claude-border border overflow-hidden`}>
           <div className="max-h-64 overflow-y-auto">
-          {availableModels.map((model) => (
-            <button
-              key={getModelIdentityKey(model)}
-              onClick={() => handleModelSelect(model)}
-              className={`w-full px-4 py-2.5 text-left dark:text-claude-darkText text-claude-text dark:hover:bg-claude-darkSurfaceHover hover:bg-claude-surfaceHover flex items-center justify-between transition-colors ${
-                isSameModelIdentity(model, selectedModel) ? 'dark:bg-claude-darkSurfaceHover/50 bg-claude-surfaceHover/50' : ''
-              }`}
-            >
-              <div className="flex flex-col">
-                <span className="text-sm">{model.name}</span>
-                {model.provider && (
-                  <span className="text-xs dark:text-claude-darkTextSecondary text-claude-textSecondary">{model.provider}</span>
+            {availableModels.map((model) => (
+              <button
+                key={getModelIdentityKey(model)}
+                onClick={() => handleModelSelect(model)}
+                className={`w-full px-4 py-2.5 text-left dark:text-claude-darkText text-claude-text dark:hover:bg-claude-darkSurfaceHover hover:bg-claude-surfaceHover flex items-center justify-between transition-colors ${
+                  isSameModelIdentity(model, selectedModel) ? 'dark:bg-claude-darkSurfaceHover/50 bg-claude-surfaceHover/50' : ''
+                }`}
+              >
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm truncate">{model.name}</span>
+                  {model.provider && (
+                    <span className="text-xs dark:text-claude-darkTextSecondary text-claude-textSecondary truncate">{model.provider}</span>
+                  )}
+                </div>
+                {isSameModelIdentity(model, selectedModel) && (
+                  <CheckIcon className="h-4 w-4 shrink-0 text-claude-accent" />
                 )}
-              </div>
-              {isSameModelIdentity(model, selectedModel) && (
-                <CheckIcon className="h-4 w-4 text-claude-accent" />
-              )}
-            </button>
-          ))}
+              </button>
+            ))}
           </div>
         </div>
       )}
