@@ -403,7 +403,9 @@ const CoworkView: React.FC<CoworkViewProps> = ({ onRequestAppSettings, onShowSki
 
   // Home view - no current session
   return (
-    <div className="flex-1 flex flex-col dark:bg-claude-darkBg bg-claude-bg h-full">
+    <div className="flex-1 flex flex-col bg-background h-full">
+      {/* Engine status banner for error states */}
+      {engineStatusBanner}
       {/* Header */}
       {homeHeader}
 
