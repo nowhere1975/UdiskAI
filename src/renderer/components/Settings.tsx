@@ -8,11 +8,9 @@ import { decryptSecret, encryptWithPassword, decryptWithPassword, EncryptedPaylo
 import { coworkService } from '../services/cowork';
 import { APP_ID, EXPORT_FORMAT_TYPE, EXPORT_PASSWORD } from '../constants/app';
 import ErrorMessage from './ErrorMessage';
-import { XMarkIcon, Cog6ToothIcon, SignalIcon, CheckCircleIcon, XCircleIcon, CubeIcon, EnvelopeIcon, InformationCircleIcon, UserCircleIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
-import { EyeIcon, EyeSlashIcon, XCircleIcon as XCircleIconSolid } from '@heroicons/react/20/solid';
+import { XMarkIcon, Cog6ToothIcon, CheckCircleIcon, XCircleIcon, CubeIcon, EnvelopeIcon, InformationCircleIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/20/solid';
 import PlusCircleIcon from './icons/PlusCircleIcon';
-import TrashIcon from './icons/TrashIcon';
-import PencilIcon from './icons/PencilIcon';
 import BrainIcon from './icons/BrainIcon';
 import { useDispatch, useSelector } from 'react-redux';
 import { setAvailableModels } from '../store/slices/modelSlice';
@@ -24,6 +22,7 @@ import type {
 } from '../types/cowork';
 
 import EmailSkillConfig from './skills/EmailSkillConfig';
+import ModelSettingsSection from './settings/ModelSettingsSection';
 import { defaultConfig, type AppConfig, getVisibleProviders } from '../config';
 import {
   OpenAIIcon,
@@ -35,6 +34,7 @@ import {
   MiniMaxIcon,
   YouDaoZhiYunIcon,
   QwenIcon,
+  QianfanIcon,
   XiaomiIcon,
   StepfunIcon,
   DoubaoIcon,
@@ -64,6 +64,7 @@ const providerKeys = [
   'minimax',
   'volcengine',
   'qwen',
+  'qianfan',
   'youdaozhiyun',
   'stepfun',
   'xiaomi',
@@ -135,6 +136,7 @@ const providerMeta: Record<ProviderType, { label: string; icon: React.ReactNode 
   minimax: { label: 'MiniMax', icon: <MiniMaxIcon /> },
   youdaozhiyun: { label: 'Youdao', icon: <YouDaoZhiYunIcon /> },
   qwen: { label: 'Qwen', icon: <QwenIcon /> },
+  qianfan: { label: 'Qianfan', icon: <QianfanIcon /> },
   xiaomi: { label: 'Xiaomi', icon: <XiaomiIcon /> },
   stepfun: { label: 'StepFun', icon: <StepfunIcon /> },
   volcengine: { label: '豆包', icon: <DoubaoIcon /> },
@@ -228,7 +230,7 @@ const copyTextToClipboard = async (text: string): Promise<boolean> => {
 };
 
 const getFixedApiFormatForProvider = (provider: string): 'anthropic' | 'openai' | null => {
-  if (provider === 'openai' || provider === 'gemini' || provider === 'stepfun') {
+  if (provider === 'openai' || provider === 'gemini' || provider === 'stepfun' || provider === 'qianfan') {
     return 'openai';
   }
   if (provider === 'youdaozhiyun') {
@@ -241,9 +243,6 @@ const getFixedApiFormatForProvider = (provider: string): 'anthropic' | 'openai' 
 };
 const getEffectiveApiFormat = (provider: string, value: unknown): 'anthropic' | 'openai' => (
   getFixedApiFormatForProvider(provider) ?? normalizeApiFormat(value)
-);
-const shouldShowApiFormatSelector = (provider: string): boolean => (
-  getFixedApiFormatForProvider(provider) === null
 );
 const getProviderDefaultBaseUrl = (
   provider: ProviderType,
@@ -418,6 +417,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
   const [newModelName, setNewModelName] = useState('');
   const [newModelId, setNewModelId] = useState('');
   const [newModelSupportsImage, setNewModelSupportsImage] = useState(false);
+  const [newModelContextWindow, setNewModelContextWindow] = useState<number | undefined>(undefined);
   const [modelFormError, setModelFormError] = useState<string | null>(null);
 
   const [kbEmbedConfig, setKbEmbedConfig] = useState({
@@ -586,6 +586,17 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
             ...prev,
             qwen: {
               ...prev.qwen,
+              enabled: true,
+              apiKey: config.api.key,
+              baseUrl: config.api.baseUrl
+            }
+          }));
+        } else if (normalizedApiBaseUrl.includes('qianfan') || normalizedApiBaseUrl.includes('baidubce')) {
+          setActiveProvider('qianfan');
+          setProviders(prev => ({
+            ...prev,
+            qianfan: {
+              ...prev.qianfan,
               enabled: true,
               apiKey: config.api.key,
               baseUrl: config.api.baseUrl
@@ -1163,16 +1174,18 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
     setNewModelName('');
     setNewModelId('');
     setNewModelSupportsImage(false);
+    setNewModelContextWindow(undefined);
     setModelFormError(null);
   };
 
-  const handleEditModel = (modelId: string, modelName: string, supportsImage?: boolean) => {
+  const handleEditModel = (modelId: string, modelName: string, supportsImage?: boolean, contextWindow?: number) => {
     setIsAddingModel(false);
     setIsEditingModel(true);
     setEditingModelId(modelId);
     setNewModelName(modelName);
     setNewModelId(modelId);
     setNewModelSupportsImage(!!supportsImage);
+    setNewModelContextWindow(contextWindow);
     setModelFormError(null);
   };
 
@@ -1227,6 +1240,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
       id: modelId,
       name: modelName,
       supportsImage: newModelSupportsImage,
+      ...(newModelContextWindow !== undefined ? { contextWindow: newModelContextWindow } : {}),
     };
     const updatedModels = isEditingModel && editingModelId
       ? currentModels.map(model => (model.id === editingModelId ? nextModel : model))
@@ -1246,6 +1260,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
     setNewModelName('');
     setNewModelId('');
     setNewModelSupportsImage(false);
+    setNewModelContextWindow(undefined);
     setModelFormError(null);
   };
 
@@ -1256,6 +1271,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
     setNewModelName('');
     setNewModelId('');
     setNewModelSupportsImage(false);
+    setNewModelContextWindow(undefined);
     setModelFormError(null);
   };
 
@@ -2062,323 +2078,44 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice }) => {
       case 'model':
         return (
           <div className="flex flex-col h-full overflow-y-auto gap-4 [scrollbar-gutter:stable]">
-
-            {/* ── 自配 API Key ── */}
-            <div className="flex-shrink-0 pb-2">
-              {/* Section 标题行 */}
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold dark:text-claude-darkText text-claude-text">
-                  {i18nService.t('onboardingOwnKey')}
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    ref={importInputRef}
-                    type="file"
-                    accept="application/json"
-                    className="hidden"
-                    onChange={handleImportProviders}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleImportProvidersClick}
-                    disabled={isImportingProviders || isExportingProviders}
-                    className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg border dark:border-claude-darkBorder border-claude-border dark:text-claude-darkTextSecondary text-claude-textSecondary dark:hover:bg-claude-darkSurface hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                  >
-                    {i18nService.t('import')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleExportProviders}
-                    disabled={isImportingProviders || isExportingProviders}
-                    className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg border dark:border-claude-darkBorder border-claude-border dark:text-claude-darkTextSecondary text-claude-textSecondary dark:hover:bg-claude-darkSurface hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                  >
-                    {i18nService.t('export')}
-                  </button>
-                </div>
-              </div>
-
-              {/* 手风琴 provider 卡片 */}
-              <div className="flex flex-col gap-2">
-                {Object.entries(visibleProviders).map(([provider, config]) => {
-                  const providerKey = provider as ProviderType;
-                  const providerInfo = providerMeta[providerKey];
-                  const isOpen = activeProvider === providerKey && providerExpanded;
-                  const missingApiKey = providerRequiresApiKey(providerKey) && !config.apiKey.trim();
-                  const canToggle = config.enabled || !missingApiKey;
-                  const isProviderBaseUrlLocked = (providerKey === 'zhipu' && providers.zhipu.codingPlanEnabled) || (providerKey === 'moonshot' && providers.moonshot.codingPlanEnabled) || (providerKey === 'volcengine' && providers.volcengine.codingPlanEnabled);
-                  const displayBaseUrl = providerKey === 'zhipu' && providers.zhipu.codingPlanEnabled
-                    ? (getEffectiveApiFormat('zhipu', providers.zhipu.apiFormat) === 'anthropic' ? 'https://open.bigmodel.cn/api/anthropic' : 'https://open.bigmodel.cn/api/coding/paas/v4')
-                    : providerKey === 'moonshot' && providers.moonshot.codingPlanEnabled
-                      ? (getEffectiveApiFormat('moonshot', providers.moonshot.apiFormat) === 'anthropic' ? 'https://api.kimi.com/coding' : 'https://api.kimi.com/coding/v1')
-                      : providerKey === 'volcengine' && providers.volcengine.codingPlanEnabled
-                        ? (getEffectiveApiFormat('volcengine', providers.volcengine.apiFormat) === 'anthropic' ? 'https://ark.cn-beijing.volces.com/api/coding' : 'https://ark.cn-beijing.volces.com/api/coding/v3')
-                        : providers[providerKey].baseUrl;
-
-                  return (
-                    <div
-                      key={provider}
-                      className={`rounded-xl border transition-colors duration-150 dark:bg-claude-darkSurface bg-white ${
-                        isOpen
-                          ? 'dark:border-claude-accent/40 border-claude-accent/30'
-                          : 'dark:border-claude-darkBorder border-gray-200'
-                      }`}
-                    >
-                      {/* 卡片标题行 */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (isOpen) {
-                            setProviderExpanded(false);
-                          } else {
-                            handleProviderChange(providerKey);
-                            setProviderExpanded(true);
-                          }
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left rounded-xl dark:hover:bg-claude-darkSurfaceHover hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="w-7 h-7 rounded-lg dark:bg-claude-darkBg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                          {providerInfo?.icon}
-                        </div>
-                        <span className="flex-1 text-sm font-medium dark:text-claude-darkText text-claude-text">
-                          {providerInfo?.label ?? provider.charAt(0).toUpperCase() + provider.slice(1)}
-                        </span>
-                        {config.enabled && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 font-medium flex-shrink-0">
-                            {i18nService.t('providerStatusOn')}
-                          </span>
-                        )}
-                        {/* 开关 */}
-                        <div
-                          title={!canToggle ? i18nService.t('configureApiKey') : undefined}
-                          className={`relative w-9 h-5 rounded-full flex-shrink-0 transition-colors ${
-                            config.enabled ? 'bg-claude-accent' : 'dark:bg-claude-darkBorder bg-gray-300'
-                          } ${canToggle ? 'cursor-pointer' : 'cursor-not-allowed opacity-40'}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (canToggle) toggleProviderEnabled(providerKey);
-                          }}
-                        >
-                          <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
-                            config.enabled ? 'translate-x-4' : 'translate-x-0.5'
-                          }`} />
-                        </div>
-                        <ChevronDownIcon className={`h-4 w-4 flex-shrink-0 transition-transform duration-200 dark:text-claude-darkTextSecondary text-claude-textSecondary ${isOpen ? 'rotate-180' : ''}`} />
-                      </button>
-
-                      {/* 展开的配置表单 */}
-                      {isOpen && (
-                        <div className="border-t dark:border-claude-darkBorder border-gray-100 px-4 pb-5 pt-4 space-y-4">
-
-                          {/* API Key */}
-                          {providerRequiresApiKey(providerKey) && (
-                            <div>
-                              <label htmlFor={`${providerKey}-apiKey`} className="block text-xs font-medium dark:text-claude-darkText text-claude-text mb-1.5">
-                                {i18nService.t('apiKey')}
-                              </label>
-                              <div className="relative">
-                                <input
-                                  type={showApiKey ? 'text' : 'password'}
-                                  id={`${providerKey}-apiKey`}
-                                  value={providers[providerKey].apiKey}
-                                  onChange={(e) => handleProviderConfigChange(providerKey, 'apiKey', e.target.value)}
-                                  className="block w-full rounded-xl bg-claude-surfaceInset dark:bg-claude-darkSurfaceInset dark:border-claude-darkBorder border-claude-border border focus:border-claude-accent focus:ring-1 focus:ring-claude-accent/30 dark:text-claude-darkText text-claude-text px-3 py-2 pr-16 text-xs"
-                                  placeholder={i18nService.t('apiKeyPlaceholder')}
-                                />
-                                <div className="absolute right-2 inset-y-0 flex items-center gap-1">
-                                  {providers[providerKey].apiKey && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleProviderConfigChange(providerKey, 'apiKey', '')}
-                                      className="p-0.5 rounded text-claude-textSecondary dark:text-claude-darkTextSecondary hover:text-claude-accent transition-colors"
-                                    >
-                                      <XCircleIconSolid className="h-4 w-4" />
-                                    </button>
-                                  )}
-                                  <button
-                                    type="button"
-                                    onClick={() => setShowApiKey(!showApiKey)}
-                                    className="p-0.5 rounded text-claude-textSecondary dark:text-claude-darkTextSecondary hover:text-claude-accent transition-colors"
-                                  >
-                                    {showApiKey ? <EyeIcon className="h-4 w-4" /> : <EyeSlashIcon className="h-4 w-4" />}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Base URL */}
-                          <div>
-                            <label htmlFor={`${providerKey}-baseUrl`} className="block text-xs font-medium dark:text-claude-darkText text-claude-text mb-1.5">
-                              {i18nService.t('baseUrl')}
-                            </label>
-                            <div className="relative">
-                              <input
-                                type="text"
-                                id={`${providerKey}-baseUrl`}
-                                value={displayBaseUrl}
-                                onChange={(e) => handleProviderConfigChange(providerKey, 'baseUrl', e.target.value)}
-                                disabled={isProviderBaseUrlLocked}
-                                className={`block w-full rounded-xl bg-claude-surfaceInset dark:bg-claude-darkSurfaceInset dark:border-claude-darkBorder border-claude-border border focus:border-claude-accent focus:ring-1 focus:ring-claude-accent/30 dark:text-claude-darkText text-claude-text px-3 py-2 pr-8 text-xs ${isProviderBaseUrlLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                placeholder={getProviderDefaultBaseUrl(providerKey, getEffectiveApiFormat(providerKey, providers[providerKey].apiFormat)) || defaultConfig.providers?.[providerKey]?.baseUrl || i18nService.t('baseUrlPlaceholder')}
-                              />
-                              {providers[providerKey].baseUrl && !isProviderBaseUrlLocked && (
-                                <div className="absolute right-2 inset-y-0 flex items-center">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleProviderConfigChange(providerKey, 'baseUrl', '')}
-                                    className="p-0.5 rounded text-claude-textSecondary dark:text-claude-darkTextSecondary hover:text-claude-accent transition-colors"
-                                  >
-                                    <XCircleIconSolid className="h-4 w-4" />
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                            {providerKey === 'custom' && (
-                              <div className="mt-1.5 space-y-0.5 text-[11px] text-claude-secondaryText dark:text-claude-darkSecondaryText">
-                                <p><span className="text-sm text-claude-accent/50 mr-1">•</span>{i18nService.t('baseUrlHint1')}<code className="ml-1 text-claude-accent/80 dark:text-claude-accent/70 break-all">{i18nService.t('baseUrlHintExample1')}</code></p>
-                                <p><span className="text-sm text-claude-accent/50 mr-1">•</span>{i18nService.t('baseUrlHint2')}<code className="ml-1 text-claude-accent/80 dark:text-claude-accent/70 break-all">{i18nService.t('baseUrlHintExample2')}</code></p>
-                              </div>
-                            )}
-                            {providerKey === 'zhipu' && providers.zhipu.codingPlanEnabled && (
-                              <div className="mt-1.5 p-2 rounded-lg bg-claude-accent/10 border border-claude-accent/20">
-                                <p className="text-[11px] text-claude-accent"><span className="font-medium">GLM Coding Plan:</span> {i18nService.t('zhipuCodingPlanEndpointHint')}</p>
-                              </div>
-                            )}
-                            {providerKey === 'moonshot' && providers.moonshot.codingPlanEnabled && (
-                              <div className="mt-1.5 p-2 rounded-lg bg-claude-accent/10 border border-claude-accent/20">
-                                <p className="text-[11px] text-claude-accent"><span className="font-medium">Coding Plan:</span> {i18nService.t('moonshotCodingPlanEndpointHint')}</p>
-                              </div>
-                            )}
-                            {providerKey === 'volcengine' && providers.volcengine.codingPlanEnabled && (
-                              <div className="mt-1.5 p-2 rounded-lg bg-claude-accent/10 border border-claude-accent/20">
-                                <p className="text-[11px] text-claude-accent"><span className="font-medium">Coding Plan:</span> {i18nService.t('volcengineCodingPlanEndpointHint')}</p>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* API 格式 */}
-                          {shouldShowApiFormatSelector(providerKey) && (
-                            <div>
-                              <label className="block text-xs font-medium dark:text-claude-darkText text-claude-text mb-1.5">
-                                {i18nService.t('apiFormat')}
-                              </label>
-                              <div className="flex gap-2">
-                                {(['anthropic', 'openai'] as const).map((fmt) => (
-                                  <label key={fmt} className={`flex-1 flex items-center justify-center py-2 px-3 rounded-xl border cursor-pointer transition-colors text-xs font-medium ${
-                                    getEffectiveApiFormat(providerKey, providers[providerKey].apiFormat) === fmt
-                                      ? 'dark:border-claude-accent/50 border-claude-accent/50 dark:bg-claude-accent/10 bg-claude-accent/5 text-claude-accent'
-                                      : 'dark:border-claude-darkBorder border-claude-border dark:text-claude-darkTextSecondary text-claude-textSecondary dark:hover:bg-claude-darkSurface hover:bg-gray-50'
-                                  }`}>
-                                    <input type="radio" name={`${providerKey}-apiFormat`} value={fmt}
-                                      checked={getEffectiveApiFormat(providerKey, providers[providerKey].apiFormat) === fmt}
-                                      onChange={() => handleProviderConfigChange(providerKey, 'apiFormat', fmt)}
-                                      className="sr-only"
-                                    />
-                                    {fmt === 'anthropic' ? i18nService.t('apiFormatNative') : 'OpenAI'}
-                                  </label>
-                                ))}
-                              </div>
-                              <p className="mt-1.5 text-xs dark:text-claude-darkTextSecondary text-claude-textSecondary">
-                                {i18nService.t('apiFormatHint')}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Coding Plan 开关 (moonshot / zhipu / volcengine) */}
-                          {(providerKey === 'zhipu' || providerKey === 'moonshot' || providerKey === 'volcengine') && (
-                            <div className="flex items-center justify-between p-3 rounded-xl dark:bg-claude-darkSurface/50 bg-claude-surface/50 border dark:border-claude-darkBorder border-claude-border">
-                              <div className="flex-1">
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-xs font-medium dark:text-claude-darkText text-claude-text">
-                                    {providerKey === 'zhipu' ? 'GLM Coding Plan' : 'Coding Plan'}
-                                  </span>
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-claude-accent/10 text-claude-accent">Beta</span>
-                                </div>
-                                <p className="mt-0.5 text-[11px] dark:text-claude-darkTextSecondary text-claude-textSecondary">
-                                  {providerKey === 'zhipu' ? i18nService.t('zhipuCodingPlanHint') : providerKey === 'volcengine' ? i18nService.t('volcengineCodingPlanHint') : i18nService.t('moonshotCodingPlanHint')}
-                                </p>
-                              </div>
-                              <label className="relative inline-flex items-center cursor-pointer ml-3">
-                                <input
-                                  type="checkbox"
-                                  checked={providers[providerKey].codingPlanEnabled ?? false}
-                                  onChange={(e) => handleProviderConfigChange(providerKey, 'codingPlanEnabled', e.target.checked ? 'true' : 'false')}
-                                  className="sr-only peer"
-                                />
-                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-claude-accent/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-claude-accent"></div>
-                              </label>
-                            </div>
-                          )}
-
-                          {/* 模型列表标题 + 测试连接 */}
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-medium dark:text-claude-darkText text-claude-text">
-                              {i18nService.t('availableModels')}
-                            </h3>
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={handleTestConnection}
-                                disabled={isTesting || (providerRequiresApiKey(providerKey) && !providers[providerKey].apiKey)}
-                                className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium rounded-xl border dark:border-claude-darkBorder border-claude-border dark:text-claude-darkText text-claude-text dark:hover:bg-claude-darkSurfaceHover hover:bg-claude-surfaceHover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                              >
-                                <SignalIcon className="h-3.5 w-3.5 mr-1.5" />
-                                {isTesting ? i18nService.t('testing') : i18nService.t('testConnection')}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleAddModel}
-                                className="inline-flex items-center text-xs text-claude-accent hover:text-claude-accentHover"
-                              >
-                                <PlusCircleIcon className="h-3.5 w-3.5 mr-1" />
-                                {i18nService.t('addModel')}
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* 模型列表 */}
-                          <div className="space-y-1.5">
-                            {providers[providerKey].models?.map(model => (
-                              <div key={model.id} className="dark:bg-claude-darkSurface/50 bg-claude-surface/50 p-2 rounded-xl dark:border-claude-darkBorder border-claude-border border transition-colors hover:border-claude-accent group">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center space-x-1.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-                                    <span className="dark:text-claude-darkText text-claude-text font-medium text-[11px]">{model.name}</span>
-                                  </div>
-                                  <div className="flex items-center space-x-1">
-                                    <span className="text-[10px] px-1.5 py-0.5 bg-claude-surfaceHover dark:bg-claude-darkSurfaceHover rounded-md dark:text-claude-darkTextSecondary text-claude-textSecondary">{model.id}</span>
-                                    {model.supportsImage && (
-                                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-claude-accent/10 text-claude-accent">{i18nService.t('imageInput')}</span>
-                                    )}
-                                    <button type="button" onClick={() => handleEditModel(model.id, model.name, model.supportsImage)} className="p-0.5 dark:text-claude-darkTextSecondary text-claude-textSecondary hover:text-claude-accent opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <PencilIcon className="h-3.5 w-3.5" />
-                                    </button>
-                                    <button type="button" onClick={() => handleDeleteModel(model.id)} className="p-0.5 dark:text-claude-darkTextSecondary text-claude-textSecondary hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <TrashIcon className="h-3.5 w-3.5" />
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                            {(!providers[providerKey].models || providers[providerKey].models.length === 0) && (
-                              <div className="dark:bg-claude-darkSurface/20 bg-claude-surface/20 p-2.5 rounded-xl border dark:border-claude-darkBorder/50 border-claude-border/50 text-center">
-                                <p className="text-[11px] dark:text-claude-darkTextSecondary text-claude-textSecondary">{i18nService.t('noModelsAvailable')}</p>
-                                <button type="button" onClick={handleAddModel} className="mt-1.5 inline-flex items-center text-[11px] font-medium text-claude-accent hover:text-claude-accentHover">
-                                  <PlusCircleIcon className="h-3 w-3 mr-1" />
-                                  {i18nService.t('addFirstModel')}
-                                </button>
-                              </div>
-                            )}
-                          </div>
-
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
+            <ModelSettingsSection
+              providers={providers}
+              visibleProviders={visibleProviders}
+              activeProvider={activeProvider}
+              providerExpanded={providerExpanded}
+              setProviderExpanded={setProviderExpanded}
+              showApiKey={showApiKey}
+              setShowApiKey={setShowApiKey}
+              isImportingProviders={isImportingProviders}
+              isExportingProviders={isExportingProviders}
+              importInputRef={importInputRef}
+              handleImportProvidersClick={handleImportProvidersClick}
+              handleExportProviders={handleExportProviders}
+              handleImportProviders={handleImportProviders}
+              handleProviderChange={handleProviderChange}
+              toggleProviderEnabled={toggleProviderEnabled}
+              handleProviderConfigChange={handleProviderConfigChange}
+              handleTestConnection={handleTestConnection}
+              isTesting={isTesting}
+              handleAddModel={handleAddModel}
+              handleEditModel={handleEditModel}
+              handleDeleteModel={handleDeleteModel}
+              isAddingModel={isAddingModel}
+              isEditingModel={isEditingModel}
+              newModelName={newModelName}
+              setNewModelName={setNewModelName}
+              newModelId={newModelId}
+              setNewModelId={setNewModelId}
+              newModelSupportsImage={newModelSupportsImage}
+              setNewModelSupportsImage={setNewModelSupportsImage}
+              newModelContextWindow={newModelContextWindow}
+              setNewModelContextWindow={setNewModelContextWindow}
+              modelFormError={modelFormError}
+              setModelFormError={setModelFormError}
+              handleSaveNewModel={handleSaveNewModel}
+              handleCancelModelEdit={handleCancelModelEdit}
+              handleModelDialogKeyDown={handleModelDialogKeyDown}
+            />
             {/* ── 知识库向量服务 ── */}
             <div className="flex-shrink-0 pb-4">
               <div className="mb-3">
