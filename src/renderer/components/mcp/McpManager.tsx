@@ -460,26 +460,26 @@ const McpManager: React.FC = () => {
                     </p>
                   </Tooltip>
 
-                  <div className="flex items-center gap-2 text-[10px] dark:text-claude-darkTextSecondary text-claude-textSecondary">
-                    <span className={`px-1.5 py-0.5 rounded font-medium ${TRANSPORT_BADGE_COLORS[server.transportType] || ''}`}>
+                  <div className="flex items-center gap-2 text-[10px] dark:text-claude-darkTextSecondary text-claude-textSecondary min-w-0">
+                    <span className={`shrink-0 px-1.5 py-0.5 rounded font-medium ${TRANSPORT_BADGE_COLORS[server.transportType] || ''}`}>
                       {server.transportType}
                     </span>
                     {server.transportType === 'stdio' && server.command && (
                       <>
-                        <span>·</span>
-                        <span className="truncate">{getStdioCommandSummary(server.command, server.args)}</span>
+                        <span className="shrink-0">·</span>
+                        <span className="truncate min-w-0">{getStdioCommandSummary(server.command, server.args)}</span>
                       </>
                     )}
                     {(server.transportType === 'sse' || server.transportType === 'http') && server.url && (
                       <>
-                        <span>·</span>
-                        <span className="truncate">{server.url}</span>
+                        <span className="shrink-0">·</span>
+                        <span className="truncate min-w-0">{server.url}</span>
                       </>
                     )}
                     {registryEntry?.requiredEnvKeys && registryEntry.requiredEnvKeys.length > 0 && (
                       <>
-                        <span>·</span>
-                        <span className="text-amber-500 dark:text-amber-400">
+                        <span className="shrink-0">·</span>
+                        <span className="shrink-0 text-amber-500 dark:text-amber-400">
                           {registryEntry.requiredEnvKeys.length} key{registryEntry.requiredEnvKeys.length > 1 ? 's' : ''}
                         </span>
                       </>
@@ -554,16 +554,16 @@ const McpManager: React.FC = () => {
                     {getRegistryEntryDescription(entry)}
                   </p>
 
-                  <div className="flex items-center gap-2 text-[10px] dark:text-claude-darkTextSecondary text-claude-textSecondary">
-                    <span className={`px-1.5 py-0.5 rounded font-medium ${TRANSPORT_BADGE_COLORS[entry.transportType] || ''}`}>
+                  <div className="flex items-center gap-2 text-[10px] dark:text-claude-darkTextSecondary text-claude-textSecondary min-w-0">
+                    <span className={`shrink-0 px-1.5 py-0.5 rounded font-medium ${TRANSPORT_BADGE_COLORS[entry.transportType] || ''}`}>
                       {entry.transportType}
                     </span>
-                    <span>·</span>
-                    <span className="truncate">{getStdioCommandSummary(entry.command, entry.defaultArgs)}</span>
+                    <span className="shrink-0">·</span>
+                    <span className="truncate min-w-0">{getStdioCommandSummary(entry.command, entry.defaultArgs)}</span>
                     {entry.requiredEnvKeys && entry.requiredEnvKeys.length > 0 && (
                       <>
-                        <span>·</span>
-                        <span className="text-amber-500 dark:text-amber-400">
+                        <span className="shrink-0">·</span>
+                        <span className="shrink-0 text-amber-500 dark:text-amber-400">
                           {entry.requiredEnvKeys.length} key{entry.requiredEnvKeys.length > 1 ? 's' : ''}
                         </span>
                       </>
@@ -646,20 +646,20 @@ const McpManager: React.FC = () => {
                     </p>
                   </Tooltip>
 
-                  <div className="flex items-center gap-2 text-[10px] dark:text-claude-darkTextSecondary text-claude-textSecondary">
-                    <span className={`px-1.5 py-0.5 rounded font-medium ${TRANSPORT_BADGE_COLORS[server.transportType] || ''}`}>
+                  <div className="flex items-center gap-2 text-[10px] dark:text-claude-darkTextSecondary text-claude-textSecondary min-w-0">
+                    <span className={`shrink-0 px-1.5 py-0.5 rounded font-medium ${TRANSPORT_BADGE_COLORS[server.transportType] || ''}`}>
                       {server.transportType}
                     </span>
                     {server.transportType === 'stdio' && server.command && (
                       <>
-                        <span>·</span>
-                        <span className="truncate">{server.command}</span>
+                        <span className="shrink-0">·</span>
+                        <span className="truncate min-w-0">{server.command}</span>
                       </>
                     )}
                     {(server.transportType === 'sse' || server.transportType === 'http') && server.url && (
                       <>
-                        <span>·</span>
-                        <span className="truncate">{server.url}</span>
+                        <span className="shrink-0">·</span>
+                        <span className="truncate min-w-0">{server.url}</span>
                       </>
                     )}
                   </div>
