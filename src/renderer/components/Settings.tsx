@@ -70,6 +70,7 @@ const providerKeys = [
   'xiaomi',
   'openrouter',
   'ollama',
+  'lm-studio',
   'custom',
 ] as const;
 
@@ -142,6 +143,7 @@ const providerMeta: Record<ProviderType, { label: string; icon: React.ReactNode 
   volcengine: { label: '豆包', icon: <DoubaoIcon /> },
   openrouter: { label: 'OpenRouter', icon: <OpenRouterIcon /> },
   ollama: { label: 'Ollama', icon: <OllamaIcon /> },
+  'lm-studio': { label: 'LM Studio', icon: <CustomProviderIcon /> },
   custom: { label: 'Custom', icon: <CustomProviderIcon /> },
 };
 
@@ -170,6 +172,10 @@ const providerSwitchableDefaultBaseUrls: Partial<Record<ProviderType, { anthropi
     anthropic: 'https://api.xiaomimimo.com/anthropic',
     openai: 'https://api.xiaomimimo.com/v1/chat/completions',
   },
+  'lm-studio': {
+    anthropic: 'http://localhost:1234',
+    openai: 'http://localhost:1234/v1',
+  },
   volcengine: {
     anthropic: 'https://ark.cn-beijing.volces.com/api/compatible',
     openai: 'https://ark.cn-beijing.volces.com/api/v3',
@@ -188,7 +194,7 @@ const providerSwitchableDefaultBaseUrls: Partial<Record<ProviderType, { anthropi
   },
 };
 
-const providerRequiresApiKey = (provider: ProviderType) => provider !== 'ollama';
+const providerRequiresApiKey = (provider: ProviderType) => provider !== 'ollama' && provider !== 'lm-studio';
 const normalizeBaseUrl = (baseUrl: string): string => baseUrl.trim().replace(/\/+$/, '').toLowerCase();
 const normalizeApiFormat = (value: unknown): 'anthropic' | 'openai' => (
   value === 'openai' ? 'openai' : 'anthropic'

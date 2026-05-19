@@ -42,6 +42,7 @@ type ProviderType =
   | 'xiaomi'
   | 'openrouter'
   | 'ollama'
+  | 'lm-studio'
   | 'custom';
 
 type ProviderModel = {
@@ -81,10 +82,11 @@ const providerMeta: ProviderMeta = {
   xiaomi: { label: 'Xiaomi', icon: <XiaomiIcon /> },
   openrouter: { label: 'OpenRouter', icon: <OpenRouterIcon /> },
   ollama: { label: 'Ollama', icon: <OllamaIcon /> },
+  'lm-studio': { label: 'LM Studio', icon: <CustomProviderIcon /> },
   custom: { label: 'Custom', icon: <CustomProviderIcon /> },
 };
 
-const providerRequiresApiKey = (provider: ProviderType): boolean => provider !== 'ollama';
+const providerRequiresApiKey = (provider: ProviderType): boolean => provider !== 'ollama' && provider !== 'lm-studio';
 
 const getFixedApiFormatForProvider = (provider: string): 'anthropic' | 'openai' | null => {
   if (provider === 'openai' || provider === 'gemini' || provider === 'stepfun' || provider === 'qianfan') {
@@ -131,13 +133,17 @@ const getProviderDefaultBaseUrl = (provider: ProviderType, apiFormat: 'anthropic
       anthropic: 'https://qianfan.baidubce.com/v2',
       openai: 'https://qianfan.baidubce.com/v2/coding/chat/completions',
     },
-    xiaomi: {
-      anthropic: 'https://api.xiaomimimo.com/anthropic',
-      openai: 'https://api.xiaomimimo.com/v1/chat/completions',
-    },
-    volcengine: {
-      anthropic: 'https://ark.cn-beijing.volces.com/api/compatible',
-      openai: 'https://ark.cn-beijing.volces.com/api/v3',
+  xiaomi: {
+    anthropic: 'https://api.xiaomimimo.com/anthropic',
+    openai: 'https://api.xiaomimimo.com/v1/chat/completions',
+  },
+  'lm-studio': {
+    anthropic: 'http://localhost:1234',
+    openai: 'http://localhost:1234/v1',
+  },
+  volcengine: {
+    anthropic: 'https://ark.cn-beijing.volces.com/api/compatible',
+    openai: 'https://ark.cn-beijing.volces.com/api/v3',
     },
     openrouter: {
       anthropic: 'https://openrouter.ai/api',

@@ -205,6 +205,8 @@ export const defaultConfig: AppConfig = {
       baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
       apiFormat: 'openai',
       models: [
+        { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', supportsImage: true },
+        { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash', supportsImage: true },
         { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', supportsImage: true }
       ]
     },
@@ -214,7 +216,9 @@ export const defaultConfig: AppConfig = {
       baseUrl: 'https://api.anthropic.com',
       apiFormat: 'anthropic',
       models: [
-        { id: 'claude-opus-4-7', name: 'Claude Opus 4.7', supportsImage: true }
+        { id: 'claude-opus-4-7', name: 'Claude Opus 4.7', supportsImage: true },
+        { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', supportsImage: true },
+        { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', supportsImage: true }
       ]
     },
     deepseek: {
@@ -224,7 +228,8 @@ export const defaultConfig: AppConfig = {
       apiFormat: 'anthropic',
       models: [
         { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash', supportsImage: false },
-        { id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro', supportsImage: false }
+        { id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro', supportsImage: false },
+        { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner', supportsImage: false }
       ]
     },
     moonshot: {
@@ -234,7 +239,19 @@ export const defaultConfig: AppConfig = {
       apiFormat: 'anthropic',
       codingPlanEnabled: false,
       models: [
-        { id: 'kimi-k2.6', name: 'Kimi K2.6', supportsImage: true }
+        { id: 'kimi-k2.6', name: 'Kimi K2.6', supportsImage: true },
+        { id: 'kimi-k2.5', name: 'Kimi K2.5', supportsImage: true }
+      ]
+    },
+    qwen: {
+      enabled: false,
+      apiKey: '',
+      baseUrl: 'https://dashscope.aliyuncs.com/apps/anthropic',
+      apiFormat: 'anthropic',
+      codingPlanEnabled: false,
+      models: [
+        { id: 'qwen3.6-plus', name: 'Qwen3.6 Plus', supportsImage: true },
+        { id: 'qwen3.5-plus', name: 'Qwen3.5 Plus', supportsImage: true }
       ]
     },
     zhipu: {
@@ -244,7 +261,9 @@ export const defaultConfig: AppConfig = {
       apiFormat: 'anthropic',
       codingPlanEnabled: false,
       models: [
-        { id: 'glm-5.1', name: 'GLM 5.1', supportsImage: false }
+        { id: 'glm-5.1', name: 'GLM 5.1', supportsImage: false },
+        { id: 'glm-5', name: 'GLM 5', supportsImage: false },
+        { id: 'glm-4.7', name: 'GLM 4.7', supportsImage: false }
       ]
     },
     minimax: {
@@ -253,7 +272,8 @@ export const defaultConfig: AppConfig = {
       baseUrl: 'https://api.minimaxi.com/anthropic',
       apiFormat: 'anthropic',
       models: [
-        { id: 'MiniMax-M2.7', name: 'MiniMax M2.7', supportsImage: false }
+        { id: 'MiniMax-M2.7', name: 'MiniMax M2.7', supportsImage: false },
+        { id: 'MiniMax-M2.5', name: 'MiniMax M2.5', supportsImage: false }
       ]
     },
     youdaozhiyun: {
@@ -264,16 +284,6 @@ export const defaultConfig: AppConfig = {
       models: [
         { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner', supportsImage: false },
         { id: 'deepseek-inhouse-reasoner', name: 'DeepSeek Reasoner (安全)', supportsImage: false }
-      ]
-    },
-    qwen: {
-      enabled: false,
-      apiKey: '',
-      baseUrl: 'https://dashscope.aliyuncs.com/apps/anthropic',
-      apiFormat: 'anthropic',
-      codingPlanEnabled: false,
-      models: [
-        { id: 'qwen3.5-plus', name: 'Qwen3.5 Plus', supportsImage: true }
       ]
     },
     qianfan: {
@@ -293,10 +303,14 @@ export const defaultConfig: AppConfig = {
     xiaomi: {
       enabled: false,
       apiKey: '',
-      baseUrl: 'https://api.xiaomimimo.com/anthropic',
-      apiFormat: 'anthropic',
+      baseUrl: 'https://api.xiaomimimo.com/v1/chat/completions',
+      apiFormat: 'openai',
       models: [
-        { id: 'mimo-v2-omni', name: 'MiMo V2 Omni', supportsImage: true }
+        { id: 'mimo-v2.5-pro', name: 'MiMo V2.5 Pro', supportsImage: false },
+        { id: 'mimo-v2.5', name: 'MiMo V2.5', supportsImage: true },
+        { id: 'mimo-v2-pro', name: 'MiMo V2 Pro', supportsImage: false },
+        { id: 'mimo-v2-omni', name: 'MiMo V2 Omni', supportsImage: true },
+        { id: 'mimo-v2-flash', name: 'MiMo V2 Flash', supportsImage: false }
       ]
     },
     stepfun: {
@@ -343,6 +357,13 @@ export const defaultConfig: AppConfig = {
         { id: 'glm-4.7-flash', name: 'GLM 4.7 Flash', supportsImage: false }
       ]
     },
+    'lm-studio': {
+      enabled: false,
+      apiKey: '',
+      baseUrl: 'http://localhost:1234/v1',
+      apiFormat: 'openai',
+      models: []
+    },
     custom: {
       enabled: false,
       apiKey: '',
@@ -376,13 +397,27 @@ export const CONFIG_KEYS = {
 };
 
 // 模型提供商分类
-export const CHINA_PROVIDERS = ['deepseek', 'volcengine', 'moonshot', 'zhipu', 'minimax', 'qianfan', 'custom'] as const;
+export const CHINA_PROVIDERS = ['deepseek', 'moonshot', 'qwen', 'zhipu', 'minimax', 'volcengine', 'youdaozhiyun', 'qianfan', 'stepfun', 'xiaomi', 'ollama', 'lm-studio', 'custom'] as const;
 export const GLOBAL_PROVIDERS = ['openai', 'gemini', 'anthropic', 'openrouter'] as const;
 export const EN_PRIORITY_PROVIDERS = ['openai', 'anthropic', 'gemini'] as const;
 
 /**
  * 根据语言获取可见的模型提供商
  */
-export const getVisibleProviders = (_language: 'zh' | 'en'): readonly string[] => {
-  return CHINA_PROVIDERS;
+export const getVisibleProviders = (language: 'zh' | 'en'): readonly string[] => {
+  if (language === 'zh') {
+    return CHINA_PROVIDERS;
+  }
+
+  const ordered = [...EN_PRIORITY_PROVIDERS, ...CHINA_PROVIDERS, ...GLOBAL_PROVIDERS];
+  const unique = [...new Set(ordered)] as string[];
+  const tailProviders = ['ollama', 'lm-studio', 'custom'] as const;
+  for (const provider of tailProviders) {
+    const index = unique.indexOf(provider);
+    if (index !== -1) {
+      unique.splice(index, 1);
+      unique.push(provider);
+    }
+  }
+  return unique;
 };
