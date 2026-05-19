@@ -49,7 +49,8 @@ const SYNTAX_HIGHLIGHTER_STYLE = {
   margin: 0,
   borderRadius: 0,
 };
-const SAFE_URL_PROTOCOLS = new Set(['http', 'https', 'mailto', 'tel', 'file']);
+const SAFE_URL_PROTOCOLS = new Set(['http', 'https', 'mailto', 'tel', 'file', 'localfile']);
+const LINK_CLASS_NAME = 'text-primary hover:text-primary-hover underline decoration-primary/50 hover:decoration-primary transition-colors break-words [overflow-wrap:anywhere]';
 
 const encodeFileUrl = (url: string): string => {
   const encoded = encodeURI(url);
@@ -150,6 +151,10 @@ const safeUrlTransform = (url: string): string => {
   const trimmed = url.trim();
   if (!trimmed) return trimmed;
 
+  if (/^[A-Za-z]:[\\/]/.test(trimmed)) {
+    return trimmed;
+  }
+
   const match = trimmed.match(/^([a-z][a-z0-9+.-]*):/i);
   if (!match) {
     return trimmed;
@@ -173,7 +178,66 @@ const getHrefProtocol = (href: string): string | null => {
 const isExternalHref = (href: string): boolean => {
   const protocol = getHrefProtocol(href);
   if (!protocol) return false;
-  return protocol !== 'file';
+  return protocol !== 'file' && protocol !== 'localfile';
+};
+
+const encodeLocalPathForUrl = (filePath: string): string => {
+  return filePath
+    .replace(/\\/g, '/')
+    .split('/')
+    .map((segment, index) => {
+      if (index === 0 && segment === '') return '';
+      if (/^[A-Za-z]:$/.test(segment)) return segment;
+      return encodeURIComponent(segment);
+    })
+    .join('/');
+};
+
+const toLocalFileSrc = (filePath: string): string => {
+  const normalized = stripFileProtocol(stripHashAndQuery(filePath.trim()));
+  const encoded = encodeLocalPathForUrl(normalized);
+  if (/^[A-Za-z]:/.test(normalized)) {
+    return `localfile:///${encoded}`;
+  }
+  if (encoded.startsWith('/')) {
+    return `localfile://${encoded}`;
+  }
+  return `localfile://${encoded}`;
+};
+
+const isRemoteOrInlineImageSrc = (src: string): boolean => /^(?:https?|data|blob):/i.test(src);
+
+const resolveMarkdownImageSrc = (
+  src: unknown,
+  alt: unknown,
+  resolveLocalFilePath?: (href: string, text: string) => string | null,
+): string | undefined => {
+  if (typeof src !== 'string') return undefined;
+
+  const srcValue = src.trim();
+  if (!srcValue || isRemoteOrInlineImageSrc(srcValue)) {
+    return srcValue || undefined;
+  }
+
+  const altText = typeof alt === 'string' ? alt : '';
+  const resolvedPath = resolveLocalFilePath ? resolveLocalFilePath(srcValue, altText) : null;
+  if (resolvedPath) {
+    return toLocalFileSrc(resolvedPath);
+  }
+
+  if (/^(?:file|localfile):\/\//i.test(srcValue)) {
+    return toLocalFileSrc(srcValue);
+  }
+
+  if (srcValue.startsWith('/') && !srcValue.startsWith('//')) {
+    return toLocalFileSrc(srcValue);
+  }
+
+  if (/^[A-Za-z]:[\\/]/.test(srcValue)) {
+    return toLocalFileSrc(srcValue);
+  }
+
+  return srcValue;
 };
 
 const openExternalViaDefaultBrowser = async (url: string): Promise<boolean> => {
@@ -365,7 +429,7 @@ const safeDecodeURIComponent = (value: string): string => {
 const stripHashAndQuery = (value: string): string => value.split('#')[0].split('?')[0];
 
 const stripFileProtocol = (value: string): string => {
-  let cleaned = value.replace(/^file:\/\//i, '');
+  let cleaned = value.replace(/^(?:file|localfile):\/\//i, '');
   if (/^\/[A-Za-z]:/.test(cleaned)) {
     cleaned = cleaned.slice(1);
   }
@@ -538,9 +602,7 @@ const createMarkdownComponents = (
     </td>
   ),
   img: ({ node, className, src, alt, ...props }: any) => {
-    const resolvedSrc = typeof src === 'string' && src.startsWith('file://')
-      ? src.replace(/^file:\/\//, 'localfile://')
-      : src;
+    const resolvedSrc = resolveMarkdownImageSrc(src, alt, resolveLocalFilePath);
     return <img className="max-w-full h-auto rounded-xl my-4" src={resolvedSrc} alt={alt} {...props} />;
   },
   hr: ({ node, ...props }: any) => (
@@ -596,11 +658,11 @@ const createMarkdownComponents = (
         <a
           href={toFileHref(filePath)}
           onClick={handleClick}
-          className="text-claude-accent hover:text-claude-accentHover underline decoration-claude-accent/50 hover:decoration-claude-accent transition-colors cursor-pointer inline-flex items-center gap-1"
+          className={`${LINK_CLASS_NAME} cursor-pointer inline-flex max-w-full flex-wrap items-center gap-1`}
           title={filePath}
           {...props}
         >
-          {children}
+          <span className="min-w-0 break-words [overflow-wrap:anywhere]">{children}</span>
           {looksLikeDirectory(filePath) ? (
             <FolderIcon className="h-3.5 w-3.5 inline" />
           ) : (
@@ -630,7 +692,7 @@ const createMarkdownComponents = (
           target="_blank"
           rel="noopener noreferrer"
           onClick={handleExternalClick}
-          className="text-claude-accent hover:text-claude-accentHover underline decoration-claude-accent/50 hover:decoration-claude-accent transition-colors"
+          className={LINK_CLASS_NAME}
           {...props}
         >
           {children}
@@ -643,7 +705,7 @@ const createMarkdownComponents = (
         href={hrefValue}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-claude-accent hover:text-claude-accentHover underline decoration-claude-accent/50 hover:decoration-claude-accent transition-colors"
+        className={LINK_CLASS_NAME}
         {...props}
       >
         {children}
@@ -679,7 +741,7 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({
   const rehypePlugins = mathReady && mathMod ? [mathMod.rehypeKatex] : [];
 
   return (
-    <div className={`markdown-content text-[15px] leading-6 ${className}`}>
+    <div className={`markdown-content min-w-0 max-w-full text-[15px] leading-[23px] ${className}`}>
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
         rehypePlugins={rehypePlugins}

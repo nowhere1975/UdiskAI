@@ -182,10 +182,13 @@ const getToolInputString = (
 const truncatePreview = (value: string, maxLength = 120): string =>
   value.length <= maxLength ? value : `${value.slice(0, maxLength - 3)}...`;
 
+const MEDIA_TOKEN_DISPLAY_RE = /\n?MEDIA:\s*`?[^`\n]+?`?\s*$/gim;
+
 const normalizeToolResultText = (value: string): string => {
   const withoutAnsi = value.replace(ANSI_ESCAPE_PATTERN, '');
   const errorTagMatch = withoutAnsi.trim().match(TOOL_USE_ERROR_TAG_PATTERN);
-  return errorTagMatch ? errorTagMatch[1].trim() : withoutAnsi;
+  const cleaned = errorTagMatch ? errorTagMatch[1].trim() : withoutAnsi;
+  return cleaned.replace(MEDIA_TOKEN_DISPLAY_RE, '').trimEnd();
 };
 
 const isTodoWriteToolName = (toolName: string | undefined): boolean => {
@@ -897,6 +900,12 @@ const CopyButton: React.FC<{
 export const UserMessageItem: React.FC<{ message: CoworkMessage; skills: Skill[] }> = React.memo(({ message, skills }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const handleMouseLeave = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (document.activeElement instanceof HTMLElement && event.currentTarget.contains(document.activeElement)) {
+      document.activeElement.blur();
+    }
+    setIsHovered(false);
+  }, []);
 
   // Get skills used for this message
   const messageSkillIds = (message.metadata as CoworkMessageMetadata)?.skillIds || [];
@@ -911,7 +920,7 @@ export const UserMessageItem: React.FC<{ message: CoworkMessage; skills: Skill[]
     <div
       className="py-2 px-4"
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={handleMouseLeave}
     >
       <div className="max-w-3xl mx-auto">
         <div className="pl-4 sm:pl-8 md:pl-12">
@@ -997,12 +1006,18 @@ const AssistantMessageItem: React.FC<{
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const displayContent = mapDisplayText ? mapDisplayText(message.content) : message.content;
+  const handleMouseLeave = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (document.activeElement instanceof HTMLElement && event.currentTarget.contains(document.activeElement)) {
+      document.activeElement.blur();
+    }
+    setIsHovered(false);
+  }, []);
 
   return (
     <div
       className="relative"
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={handleMouseLeave}
     >
       <div className="dark:text-claude-darkText text-claude-text">
         <MarkdownContent
@@ -2133,6 +2148,7 @@ const CoworkSessionDetail: React.FC<CoworkSessionDetailProps> = ({
           ref={scrollContainerRef}
           onScroll={handleMessagesScroll}
           className="h-full min-h-0 overflow-y-auto pt-3"
+          style={{ scrollbarGutter: 'stable both-edges' }}
         >
           {renderConversationTurns()}
           <div className="h-20" />
@@ -2231,7 +2247,7 @@ const CoworkSessionDetail: React.FC<CoworkSessionDetailProps> = ({
       {isStreaming && <StreamingActivityBar messages={currentSession.messages} />}
 
       {/* Input Area */}
-      <div className="p-4 shrink-0">
+      <div className="pt-0 pb-4 shrink-0">
         <div className="max-w-3xl mx-auto">
           {remoteManaged ? (
             <div className="flex items-center gap-2 rounded-xl border dark:border-claude-darkBorder border-claude-border dark:bg-claude-darkSurface bg-claude-surface px-4 py-3">
